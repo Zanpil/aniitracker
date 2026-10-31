@@ -1,5 +1,6 @@
-﻿COMPTEUR PITY LUCKY / SUPER LUCKY - ANIIMO
-=========================================
+﻿ANIITRACKER - COMPTEUR PITY LUCKY / SUPER LUCKY - ANIIMO
+========================================================
+(il s'appelait « Compteur pity Aniimo » jusqu'à la version 1.3.0)
 
 Une petite fenêtre, toujours au-dessus du jeu, qui suit où tu en es de la
 garantie (pity) des Coups de chance (Lucky) et des Super Lucky.
@@ -18,8 +19,8 @@ connecte à Internet que pour chercher ses mises à jour, si tu l'acceptes.
 
 INSTALLER
 ---------
-1. Mets « Compteur pity Aniimo.exe » dans un dossier à toi
-   (par exemple Documents\Compteur pity). Il y crée config.json et data\.
+1. Mets « Aniitracker.exe » dans un dossier à toi
+   (par exemple Documents\Aniitracker). Il y crée config.json et data\.
 2. Double-clique dessus. Il met quelques secondes à s'ouvrir.
    Si Windows affiche « Windows a protégé votre ordinateur » (le programme
    n'est pas signé) : Informations complémentaires > Exécuter quand même.
@@ -34,8 +35,10 @@ versions sur GitHub. Quand une version sort, la bulle porte un point doré et
 le menu propose « Installer la version... » : il la télécharge, la vérifie,
 remplace le programme et redémarre. Tes compteurs et tes réglages restent.
 Sinon : menu > Rechercher une mise à jour.
-Depuis une version d'avant la 1.3.0 : remplace juste
-« Compteur pity Aniimo.exe » par le nouveau, dans le même dossier.
+Depuis une version d'avant la 1.3.0 : mets « Aniitracker.exe » dans le
+dossier de l'ancien compteur (celui qui contient data\). Tes compteurs
+sont repris, et l'ancien « Compteur pity Aniimo.exe » est supprimé au
+premier lancement.
 
 
 LANCER AVEC WINDOWS
@@ -120,5 +123,5 @@ Super Lucky  : 0,2 %, garanti à 500 (aucun cette semaine)
 Source : les fichiers du jeu (formules 1126 et 1127), identiques à la page
 « Probability Details » du jeu.
 
-Projet et mises à jour : https://github.com/Zanpil/compteur-pity-aniimo
-Nouveautés : https://github.com/Zanpil/compteur-pity-aniimo/blob/main/CHANGELOG.md
+Projet et mises à jour : https://github.com/Zanpil/aniitracker
+Nouveautés : https://github.com/Zanpil/aniitracker/blob/main/CHANGELOG.md

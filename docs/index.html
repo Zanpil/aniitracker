@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Compteur pity Aniimo</title>
+<title>Aniitracker · compteur pity Lucky / Super Lucky pour Aniimo</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <meta name="description" content="Overlay non officiel pour Aniimo : compte vos captures tout seul, suit la garantie Lucky / Super Lucky et l'énergie prismatique des Floraisons.">
 <style>
@@ -16,7 +16,8 @@
   header { padding: 48px 0 28px; text-align: center; }
   header .logo { width: 128px; height: 128px; filter: drop-shadow(0 10px 30px #4d6bff55); }
   h1 { font-size: 2.4rem; margin: 0 0 8px; letter-spacing: .5px; }
-  h1 .lucky { color: var(--gold); } h1 .super { color: var(--pink); }
+  .sub { font-size: 1.3rem; font-weight: 600; margin: 0 0 14px; }
+  .sub .lucky { color: var(--gold); } .sub .super { color: var(--pink); }
   .tagline { color: var(--dim); font-size: 1.15rem; max-width: 640px; margin: 0 auto 26px; }
   .buttons a { display: inline-block; margin: 6px; padding: 12px 22px; border-radius: 10px; text-decoration: none;
                font-weight: 600; border: 1px solid var(--line); color: var(--fg); }
@@ -43,12 +44,13 @@
 <main>
 <header>
   <img class="logo" src="icone.png" alt="">
-  <h1>Compteur pity <span class="lucky">Lucky</span> / <span class="super">Super Lucky</span></h1>
+  <h1>Aniitracker</h1>
+  <p class="sub">Compteur pity <span class="lucky">Lucky</span> / <span class="super">Super Lucky</span> pour Aniimo</p>
   <p class="tagline">Une petite fenêtre par-dessus Aniimo qui compte vos captures toute seule et vous dit où vous en êtes de la garantie des Coups de chance.</p>
   <div class="buttons">
-    <a class="main" href="https://github.com/Zanpil/compteur-pity-aniimo/releases/latest/download/Compteur-pity-Aniimo.zip">Télécharger pour Windows</a>
-    <a href="https://github.com/Zanpil/compteur-pity-aniimo">Voir le code sur GitHub</a>
-    <a href="https://github.com/Zanpil/compteur-pity-aniimo/blob/main/CHANGELOG.md">Nouveautés</a>
+    <a class="main" href="https://github.com/Zanpil/aniitracker/releases/latest/download/Aniitracker.zip">Télécharger pour Windows</a>
+    <a href="https://github.com/Zanpil/aniitracker">Voir le code sur GitHub</a>
+    <a href="https://github.com/Zanpil/aniitracker/blob/main/CHANGELOG.md">Nouveautés</a>
   </div>
 </header>
 
@@ -67,11 +69,12 @@
 
 <h2>Installer</h2>
 <ol>
-  <li>Téléchargez <b>Compteur-pity-Aniimo.zip</b> et dézippez-le dans un dossier à vous.</li>
-  <li>Lancez <b>Compteur pity Aniimo.exe</b>. Si Windows affiche « Windows a protégé votre ordinateur » (programme non signé) : <i>Informations complémentaires</i> &gt; <i>Exécuter quand même</i>.</li>
+  <li>Téléchargez <b>Aniitracker.zip</b> et dézippez-le dans un dossier à vous.</li>
+  <li>Lancez <b>Aniitracker.exe</b>. Si Windows affiche « Windows a protégé votre ordinateur » (programme non signé) : <i>Informations complémentaires</i> &gt; <i>Exécuter quand même</i>.</li>
   <li>Déjà capturé depuis lundi ? Clic droit sur le compteur &gt; <i>Régler les compteurs…</i></li>
 </ol>
-<p><b>Mises à jour</b> : à partir de la 1.3.0, le compteur peut chercher ses nouvelles versions (il vous le demande au premier lancement). Quand une version sort, la bulle porte un point doré et le menu propose <i>Installer la version…</i> : il la télécharge, la vérifie et redémarre, en gardant vos compteurs et vos réglages. Depuis une version plus ancienne, remplacez simplement <b>Compteur pity Aniimo.exe</b> par le nouveau.</p>
+<p><b>Mises à jour</b> : à partir de la 1.3.0, le compteur peut chercher ses nouvelles versions (il vous le demande au premier lancement). Quand une version sort, la bulle porte un point doré et le menu propose <i>Installer la version…</i> : il la télécharge, la vérifie et redémarre, en gardant vos compteurs et vos réglages. Depuis une version plus ancienne, mettez <b>Aniitracker.exe</b> dans le dossier de l'ancien compteur, celui qui contient <i>data</i> : vos compteurs sont repris.</p>
+<p><b>Nouveau nom</b> : jusqu'à la 1.3.0, le compteur s'appelait <b>Compteur pity Aniimo</b>. Mis à jour depuis le menu, il prend son nouveau nom tout seul.</p>
 <p>Il faut Windows 10 (2004 ou plus récent) ou 11, le jeu en plein écran fenêtré ou fenêtré, <b>en français</b>, avec les effets sonores activés. Réglé en 2560×1440, mis à l'échelle pour les autres résolutions 16:9.</p>
 
 <h2>Utiliser</h2>
@@ -104,7 +107,7 @@
 <p>Free code signing provided by <a href="https://about.signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>.</p>
 <p class="note">Demande en cours auprès de SignPath Foundation : tant qu'elle n'est pas acceptée, le programme n'est pas signé et Windows affiche son avertissement.</p>
 <ul>
-  <li>Le programme est construit par GitHub Actions à partir du <a href="https://github.com/Zanpil/compteur-pity-aniimo">code du dépôt</a>, puis signé. Seul le programme de ce projet est signé.</li>
+  <li>Le programme est construit par GitHub Actions à partir du <a href="https://github.com/Zanpil/aniitracker">code du dépôt</a>, puis signé. Seul le programme de ce projet est signé.</li>
   <li>Chaque signature est approuvée à la main avant la publication d'une version.</li>
   <li>Committers and reviewers : <a href="https://github.com/Zanpil">Zanpil</a>. Approvers : <a href="https://github.com/Zanpil">Zanpil</a>.</li>
   <li>Les comptes GitHub et SignPath de l'équipe utilisent l'authentification à deux facteurs.</li>
@@ -117,7 +120,7 @@
 <footer>
   Code sous licence MIT · Aniimo, ses noms, sons et images appartiennent à NetEase · Projet non affilié.<br>
   <a href="#signature">Code signing policy</a> · <a href="#confidentialite">Confidentialité</a><br>
-  <a href="https://github.com/Zanpil/compteur-pity-aniimo">github.com/Zanpil/compteur-pity-aniimo</a>
+  <a href="https://github.com/Zanpil/aniitracker">github.com/Zanpil/aniitracker</a>
 </footer>
 </main>
 </body>

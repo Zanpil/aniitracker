@@ -9,11 +9,14 @@ never in the zip, so they stay as they are.
 """
 import hashlib, json, os, shutil, subprocess, sys, time, urllib.request, zipfile
 
-REPO = "Zanpil/compteur-pity-aniimo"
+REPO = "Zanpil/aniitracker"
 API = f"https://api.github.com/repos/{REPO}/releases/latest"
 PAGE = f"https://github.com/{REPO}/releases/latest"
-ASSET = "Compteur-pity-Aniimo.zip"
-EXE = "Compteur pity Aniimo.exe"
+ASSET = "Aniitracker.zip"
+EXE = "Aniitracker.exe"
+# its name up to 1.3.0: a release also carries its zip under that name, the only one a 1.3.0 counter
+# looks for; what is left under that name once the counter runs as Aniitracker.exe is cleaned up
+OLD_ASSET, OLD_EXE = "Compteur-pity-Aniimo.zip", "Compteur pity Aniimo.exe"
 REPLACED = ("LISEZMOI.txt",)            # updated with the exe
 OBSOLETE = ("Tester le compteur.bat",)  # shipped by older versions, replaced by the menu
 
@@ -27,7 +30,7 @@ def parse(version):
 
 
 def request(url, current, accept):
-    return urllib.request.Request(url, headers={"Accept": accept, "User-Agent": f"Compteur-pity-Aniimo/{current}"})
+    return urllib.request.Request(url, headers={"Accept": accept, "User-Agent": f"Aniitracker/{current}"})
 
 
 def latest(current, timeout=10):
@@ -111,16 +114,19 @@ def install(zip_path, exe):
 
 
 def cleanup(exe):
-    """What an update leaves behind: the old exe once it has quit, an interrupted download."""
+    """What an update leaves behind: the old exe once it has quit, an interrupted download; and the
+    program under its old name, which this one replaces."""
     folder, name = os.path.dirname(exe), os.path.basename(exe)
     names = os.listdir(folder)
-    for n in (ASSET + ".part", name[:-4] + ".new.exe"):
+    for n in (ASSET + ".part", OLD_ASSET + ".part", name[:-4] + ".new.exe"):
         if n in names:
             try:
                 os.remove(os.path.join(folder, n))
             except OSError:
                 pass
-    old = [os.path.join(folder, n) for n in names if n.startswith(name) and n.endswith(".old")]
+    old = [os.path.join(folder, n) for n in names if n.startswith((name, OLD_EXE)) and n.endswith(".old")]
+    if OLD_EXE in names and name.lower() != OLD_EXE.lower():
+        old.append(os.path.join(folder, OLD_EXE))
     for _ in range(60):  # the old counter can take a few seconds to quit
         for path in list(old):
             try:

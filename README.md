@@ -1,10 +1,10 @@
 <img src="docs/icone.png" alt="" width="96" align="right">
 
-# Compteur pity Aniimo
+# Aniitracker
 
-Petite fenêtre toujours au-dessus du jeu qui **compte toute seule vos captures** dans Aniimo et suit la garantie (pity) des **Coups de chance (Lucky)** et des **Super Lucky**. Un bandeau optionnel suit aussi l'**énergie prismatique** des Floraisons.
+Petite fenêtre toujours au-dessus du jeu qui **compte toute seule vos captures** dans Aniimo et suit la garantie (pity) des **Coups de chance (Lucky)** et des **Super Lucky**. Un bandeau optionnel suit aussi l'**énergie prismatique** des Floraisons. Il s'appelait « Compteur pity Aniimo » jusqu'à la version 1.3.0.
 
-**[Télécharger](https://github.com/Zanpil/compteur-pity-aniimo/releases/latest)** · **[Page du projet](https://zanpil.github.io/compteur-pity-aniimo/)** · **[Nouveautés](CHANGELOG.md)** · **[Code signing policy](#code-signing-policy)**
+**[Télécharger](https://github.com/Zanpil/aniitracker/releases/latest)** · **[Page du projet](https://zanpil.github.io/aniitracker/)** · **[Nouveautés](CHANGELOG.md)** · **[Code signing policy](#code-signing-policy)**
 
 ![Le compteur](docs/apercu-compteur.png) ![Le bandeau Floraison](docs/apercu-floraison.png)
 
@@ -19,8 +19,8 @@ Petite fenêtre toujours au-dessus du jeu qui **compte toute seule vos captures*
 
 ## Installer
 
-1. Téléchargez **`Compteur-pity-Aniimo.zip`** dans les [téléchargements](https://github.com/Zanpil/compteur-pity-aniimo/releases/latest) et dézippez-le dans un dossier à vous. Le compteur y crée `config.json` et `data\`.
-2. Double-cliquez sur **`Compteur pity Aniimo.exe`**. Si Windows affiche « Windows a protégé votre ordinateur » (le programme n'est pas signé) : *Informations complémentaires* > *Exécuter quand même*.
+1. Téléchargez **`Aniitracker.zip`** dans les [téléchargements](https://github.com/Zanpil/aniitracker/releases/latest) et dézippez-le dans un dossier à vous. Le compteur y crée `config.json` et `data\`.
+2. Double-cliquez sur **`Aniitracker.exe`**. Si Windows affiche « Windows a protégé votre ordinateur » (le programme n'est pas signé) : *Informations complémentaires* > *Exécuter quand même*.
 3. Si vous avez déjà capturé depuis lundi : clic droit sur le compteur > *Régler les compteurs…*
 
 Il faut :
@@ -37,7 +37,7 @@ Si rien ne se compte : jeu ouvert, menu > **Vérifier le fonctionnement**. Il v�
 
 Au premier lancement, le compteur demande s'il peut chercher ses nouvelles versions sur GitHub. Quand une version sort, la bulle porte un point doré et le menu propose **Installer la version…**. Le compteur la télécharge, vérifie son empreinte SHA-256, remplace le programme et redémarre. `config.json` et `data\` (compteurs, réglages, place des panneaux) ne sont pas touchés. Sans recherche automatique : menu > *Rechercher une mise à jour*.
 
-Cela marche à partir de la 1.3.0. Pour passer d'une version plus ancienne à la 1.3.0, remplacez `Compteur pity Aniimo.exe` par le nouveau, dans le même dossier : vos compteurs restent.
+Cela marche à partir de la 1.3.0. Depuis une version plus ancienne, mettez `Aniitracker.exe` dans le dossier de l'ancien compteur, celui qui contient `data\` : vos compteurs et réglages sont repris, et l'ancien `Compteur pity Aniimo.exe` est supprimé au premier lancement.
 
 ### Lancer avec Windows
 

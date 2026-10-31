@@ -1,4 +1,4 @@
-# Builds the counter on GitHub's servers from this repository's code, has the exe signed by
+# Builds Aniitracker on GitHub's servers from this repository's code, has the exe signed by
 # SignPath (once the SignPath secret and variables are set, see below) and prepares the release
 # as a draft, to be checked and published by hand.
 #
@@ -8,7 +8,7 @@
 # SignPath (https://signpath.org), in the repository's Settings > Secrets and variables > Actions:
 #   secret   SIGNPATH_API_TOKEN        token of the SignPath user allowed to submit signing requests
 #   variable SIGNPATH_ORGANIZATION_ID  the organization's id
-#   variable SIGNPATH_PROJECT_SLUG     the project ("compteur-pity-aniimo")
+#   variable SIGNPATH_PROJECT_SLUG     the project ("aniitracker")
 #   variable SIGNPATH_POLICY_SLUG      the signing policy ("release-signing")
 # Without the token, the exe is not signed and everything else still runs.
 name: Version
@@ -49,7 +49,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: exe-non-signe
-          path: distribution/Compteur pity Aniimo.exe
+          path: distribution/Aniitracker.exe
           retention-days: 7
 
       - name: Signature (SignPath)
@@ -69,20 +69,22 @@ jobs:
         if: env.SIGNPATH_API_TOKEN != ''
         shell: pwsh
         run: |
-          Copy-Item -LiteralPath "signed/Compteur pity Aniimo.exe" -Destination distribution -Force
-          $s = Get-AuthenticodeSignature -LiteralPath "distribution/Compteur pity Aniimo.exe"
+          Copy-Item -LiteralPath "signed/Aniitracker.exe" -Destination distribution -Force
+          $s = Get-AuthenticodeSignature -LiteralPath "distribution/Aniitracker.exe"
           if ($s.Status -ne 'Valid') { throw "signature: $($s.Status)" }
           "Signed by $($s.SignerCertificate.Subject)"
 
-      - name: Zip
+      - name: Zips (Aniitracker.zip, and the same under the name 1.3.0 counters look for)
         run: python tools/build.py zip
 
       - name: Zip, for a test without a release
         if: "!startsWith(github.ref, 'refs/tags/v')"
         uses: actions/upload-artifact@v7
         with:
-          name: Compteur-pity-Aniimo
-          path: Compteur-pity-Aniimo.zip
+          name: Aniitracker
+          path: |
+            Aniitracker.zip
+            Compteur-pity-Aniimo.zip
           retention-days: 7
 
       - name: Draft release
@@ -91,4 +93,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python tools/build.py notes notes.md
-          gh release create "${{ github.ref_name }}" Compteur-pity-Aniimo.zip --draft --title "Compteur pity Aniimo ${{ github.ref_name }}" --notes-file notes.md
+          gh release create "${{ github.ref_name }}" Aniitracker.zip Compteur-pity-Aniimo.zip --draft --title "Aniitracker ${{ github.ref_name }}" --notes-file notes.md

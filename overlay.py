@@ -1,4 +1,4 @@
-"""Always-on-top Lucky / Super Lucky pity counter for Aniimo.
+"""Aniitracker: always-on-top Lucky / Super Lucky pity counter for Aniimo ("Compteur pity Aniimo" up to 1.3.0).
 
 Never touches the game process: actions come from global hotkeys (RegisterHotKey), from the
 capture cards seen on screen (cards.Watcher) and from the game's sound, which Windows hands over
@@ -15,7 +15,7 @@ import pity
 import theme
 import updater
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 
 # your files (counters, settings) sit next to the script, or next to the exe once built
 HERE = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
@@ -38,8 +38,9 @@ DEFAULT_CONFIG = {"server": "EU", "reset_pity_weekly": True, "opacity": 0.9,
                   "sound_detection": True, "sound_catch": False, "screen_cards": True, "floraison": True,
                   "sound_threshold": 0.6, "floraison_gain": 480, "check_updates": None,
                   "hotkeys": {"catch": "F7", "lucky": "F8", "super": "F9", "undo": "F6"}}
-MUTEX, SHOW_EVENT = "AniimoPityOverlay", "AniimoPityOverlayShow"
-RUN_KEY, RUN_NAME = r"Software\Microsoft\Windows\CurrentVersion\Run", "Compteur pity Aniimo"
+MUTEX, SHOW_EVENT = "AniimoPityOverlay", "AniimoPityOverlayShow"  # the same for every version
+RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+RUN_NAME, OLD_RUN_NAME = "Aniitracker", "Compteur pity Aniimo"  # the entry there, and its name up to 1.3.0
 
 NIGHT, WARN, NOTE = "#0b1020", "#ff6b6b", "#41d8ff"
 # colour the big number takes for a moment, to show what was just counted
@@ -274,14 +275,18 @@ def save_json(path, obj):
     retry(write)
 
 
-def autostart():
-    """What Windows runs for the counter when the player signs in, or None."""
+def run_value(name):
     import winreg
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
-            return winreg.QueryValueEx(key, RUN_NAME)[0]
+            return winreg.QueryValueEx(key, name)[0]
     except OSError:
         return None
+
+
+def autostart():
+    """What Windows runs for the counter when the player signs in, or None."""
+    return run_value(RUN_NAME) or run_value(OLD_RUN_NAME)
 
 
 def set_autostart(on):
@@ -290,11 +295,37 @@ def set_autostart(on):
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
         if on:
             winreg.SetValueEx(key, RUN_NAME, 0, winreg.REG_SZ, subprocess.list2cmdline(PROGRAM + ["--demarrage"]))
-        else:
+        for name in (OLD_RUN_NAME,) if on else (RUN_NAME, OLD_RUN_NAME):
             try:
-                winreg.DeleteValue(key, RUN_NAME)
+                winreg.DeleteValue(key, name)
             except FileNotFoundError:
                 pass
+
+
+def refresh_autostart():
+    """If Windows starts the counter, it starts it from where it is now: the folder moved, or the entry
+    is the one of a version from before Aniitracker."""
+    command = autostart()
+    if command and (command != subprocess.list2cmdline(PROGRAM + ["--demarrage"]) or run_value(OLD_RUN_NAME)):
+        try:
+            set_autostart(True)
+        except OSError:
+            pass
+
+
+def take_new_name():
+    """A 1.3.0 counter updates itself under its own name, "Compteur pity Aniimo.exe": the new version takes
+    the name Aniitracker.exe (Windows lets a running program be renamed). True if it did."""
+    exe = PROGRAM[0]
+    new = os.path.join(os.path.dirname(exe), updater.EXE)
+    if os.path.basename(exe).lower() != updater.OLD_EXE.lower() or os.path.exists(new):
+        return False
+    try:
+        os.rename(exe, new)
+    except OSError:
+        return False
+    PROGRAM[0] = new
+    return True
 
 
 def pct(x):
@@ -458,7 +489,7 @@ class MenuWindow:
         body.pack(padx=1, pady=1)
         head = tk.Frame(body, bg=self.BG)
         head.pack(fill="x")
-        tk.Label(head, text="Compteur pity", bg=self.BG, fg=self.FG, font=("Segoe UI Semibold", 11)).pack(side="left")
+        tk.Label(head, text="Aniitracker", bg=self.BG, fg=self.FG, font=("Segoe UI Semibold", 11)).pack(side="left")
         tk.Label(head, text=VERSION, bg=self.BG, fg=self.DIM, font=("Segoe UI", 9)).pack(side="left", padx=px(6))
         close = tk.Label(head, text="✕", bg=self.BG, fg=self.DIM, font=("Segoe UI", 11), cursor="hand2", padx=px(4))
         close.pack(side="right")
@@ -1306,7 +1337,7 @@ class UpdateWindow:
                 path = updater.download(self.info, HERE, VERSION, lambda done, total: setattr(self, "progress",
                                                                                               (done, total)))
                 self.progress = "install"
-                updater.install(path, sys.executable)
+                updater.install(path, PROGRAM[0])
                 self.result = "ok"
             except Exception as e:
                 log_error("mise à jour")
@@ -1346,7 +1377,7 @@ def center(window):
     window.geometry(f"+{(window.winfo_screenwidth() - w) // 2}+{(window.winfo_screenheight() - h) // 3}")
 
 
-def message(text, title="Compteur pity Aniimo"):
+def message(text, title="Aniitracker"):
     user32.MessageBoxW(None, text, title, 0x40 | 0x40000)  # MB_ICONINFORMATION | MB_TOPMOST
 
 
@@ -1431,19 +1462,17 @@ def main():
             message("Le compteur tourne déjà.")
         sys.exit(0)
     show_event = kernel32.CreateEventW(None, False, False, SHOW_EVENT)
-    if getattr(sys, "frozen", False):  # what an update left: the old exe, once it has quit
-        threading.Thread(target=updater.cleanup, args=(sys.executable,), daemon=True).start()
+    renamed = False
+    if getattr(sys, "frozen", False):
+        renamed = take_new_name()
+        # what an update left: the old exe, once it has quit
+        threading.Thread(target=updater.cleanup, args=(PROGRAM[0],), daemon=True).start()
     os.makedirs(DATA, exist_ok=True)
     cfg = {**DEFAULT_CONFIG, **load_json(CONFIG, {})}
     cfg["hotkeys"] = {**DEFAULT_CONFIG["hotkeys"], **cfg["hotkeys"]}
     if not os.path.exists(CONFIG):
         save_json(CONFIG, cfg)
-    command = autostart()
-    if command and command != subprocess.list2cmdline(PROGRAM + ["--demarrage"]):
-        try:
-            set_autostart(True)  # the folder moved: Windows starts the counter from its new place
-        except OSError:
-            pass
+    refresh_autostart()
     inbox = queue.Queue()
     hotkeys = Hotkeys(inbox)
     hotkeys.start(cfg["hotkeys"])
@@ -1462,7 +1491,7 @@ def main():
         for w in watchers:
             w.start()
     root = tk.Tk()
-    root.title("Compteur pity Aniimo")
+    root.title("Aniitracker")
     try:
         root.iconbitmap(default=ICON)  # dialogs and settings
     except tk.TclError:
@@ -1470,7 +1499,8 @@ def main():
     overlay = Overlay(root, cfg, Log(EVENTS), inbox)
     overlay.watchers, overlay.hotkeys, overlay.show_event = watchers, hotkeys, show_event
     if "--apres-maj" in sys.argv:
-        overlay.show_notice(f"Compteur mis à jour : version {VERSION}")
+        overlay.show_notice(f"Le compteur s'appelle maintenant Aniitracker : version {VERSION} installée" if renamed
+                            else f"Aniitracker mis à jour : version {VERSION}")
     root.mainloop()
 
 

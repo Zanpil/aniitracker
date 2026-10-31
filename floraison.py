@@ -134,7 +134,7 @@ class Ocr:
     """Windows' text recognition, through one PowerShell started once and kept open."""
 
     def __init__(self):
-        self.dir = tempfile.mkdtemp(prefix="compteur-pity-")
+        self.dir = tempfile.mkdtemp(prefix="aniitracker-")
         script = os.path.join(self.dir, "ocr.ps1")
         with open(script, "w", encoding="utf-8-sig") as f:
             f.write(OCR_SCRIPT)

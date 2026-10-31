@@ -4,7 +4,7 @@
      The configuration in use is the one entered in the SignPath project; this copy is for reference. -->
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
   <zip-file>
-    <pe-file path="Compteur pity Aniimo.exe" product-name="Compteur pity Aniimo">
+    <pe-file path="Aniitracker.exe" product-name="Aniitracker">
       <authenticode-sign/>
     </pe-file>
   </zip-file>

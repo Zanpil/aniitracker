@@ -1,5 +1,14 @@
 # Nouveautés
 
+## 1.4.0 — 31 octobre 2026
+
+**Nouveau nom : Aniitracker**
+- Le Compteur pity Aniimo s'appelle maintenant **Aniitracker**. Le programme devient `Aniitracker.exe`, le zip `Aniitracker.zip`, et le projet est sur [github.com/Zanpil/aniitracker](https://github.com/Zanpil/aniitracker). Les anciens liens vers GitHub y mènent toujours. La page du projet, elle, change d'adresse : [zanpil.github.io/aniitracker](https://zanpil.github.io/aniitracker/).
+- **Depuis la 1.3.0** : menu > *Installer la version 1.4.0…*, comme une mise à jour normale. Le programme prend son nouveau nom tout seul, et le lancement avec Windows suit.
+- **Depuis une version plus ancienne** : mettez `Aniitracker.exe` dans le dossier de l'ancien compteur, celui qui contient `data\`. Vos compteurs et réglages sont repris, et l'ancien `Compteur pity Aniimo.exe` est supprimé au premier lancement.
+- Si un raccourci vers l'ancien programme ne marche plus, refaites-le vers `Aniitracker.exe`.
+- Rien d'autre ne change : mêmes compteurs, mêmes réglages, mêmes touches.
+
 ## 1.3.0 — 31 octobre 2026
 
 **Mises à jour en un clic**
