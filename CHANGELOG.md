@@ -2,13 +2,6 @@
 
 ## 1.2.0 — 31 octobre 2026
 
-**Nouveau style**
-- Panneaux arrondis bleu nuit, avec un médaillon : étoile dorée pour le Lucky, étoile rose pour le Super Lucky, cristal pour la Floraison.
-- Grands chiffres « 114 / 200 (57 %) », barre en dégradé, et une carte « cette semaine » sur la droite.
-- Sous le titre : dans combien de captures le coup est garanti, et le nombre de captures de la semaine.
-- Autour des panneaux, la fenêtre est transparente : on voit le jeu entre eux.
-- Nouvelle icône.
-
 **Panneaux séparés**
 - Lucky, Super Lucky et Floraison sont maintenant trois panneaux indépendants : placez chacun où vous voulez.
 - Glisser un panneau le déplace seul. **Maj + glisser** déplace tous les panneaux ensemble.
@@ -25,6 +18,14 @@
 
 **Réglages**
 - Les trois panneaux s'affichent ou se cachent séparément. Un au moins reste affiché, pour garder le clic droit vers les réglages.
+
+## 1.1.0 — 31 octobre 2026
+
+- Panneaux arrondis bleu nuit, avec un médaillon : étoile dorée pour le Lucky, étoile rose pour le Super Lucky, cristal pour la Floraison.
+- Grands chiffres « 114 / 200 (57 %) », barre en dégradé, et une carte « cette semaine » sur la droite.
+- Sous le titre : dans combien de captures le coup est garanti, et le nombre de captures de la semaine.
+- Autour des panneaux, la fenêtre est transparente : on voit le jeu entre eux.
+- Nouvelle icône.
 
 ## 1.0.0 — 31 octobre 2026
 
