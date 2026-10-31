@@ -17,7 +17,7 @@ Petite fenêtre toujours au-dessus du jeu qui **compte toute seule vos captures*
 
 ## Installer
 
-1. Téléchargez **`Compteur pity Aniimo.zip`** dans les [téléchargements](https://github.com/Zanpil/compteur-pity-aniimo/releases/latest) et dézippez-le dans un dossier à vous. Le compteur y crée `config.json` et `data\`.
+1. Téléchargez **`Compteur-pity-Aniimo.zip`** dans les [téléchargements](https://github.com/Zanpil/compteur-pity-aniimo/releases/latest) et dézippez-le dans un dossier à vous. Le compteur y crée `config.json` et `data\`.
 2. Double-cliquez sur **`Compteur pity Aniimo.exe`**. Si Windows affiche « Windows a protégé votre ordinateur » (le programme n'est pas signé) : *Informations complémentaires* > *Exécuter quand même*.
 3. Si vous avez déjà capturé depuis lundi : clic droit sur le compteur > *Régler les compteurs…*
 
