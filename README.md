@@ -1,3 +1,5 @@
+<img src="docs/icone.png" alt="" width="96" align="right">
+
 # Compteur pity Aniimo
 
 Petite fenêtre toujours au-dessus du jeu qui **compte toute seule vos captures** dans Aniimo et suit la garantie (pity) des **Coups de chance (Lucky)** et des **Super Lucky**. Un bandeau optionnel suit aussi l'**énergie prismatique** des Floraisons.

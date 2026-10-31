@@ -4,14 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Compteur pity Aniimo</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <meta name="description" content="Overlay non officiel pour Aniimo : compte vos captures tout seul, suit la garantie Lucky / Super Lucky et l'énergie prismatique des Floraisons.">
 <style>
-  :root { --bg: #101016; --panel: #16161d; --line: #2a2935; --fg: #ecebf2; --dim: #9a97ad;
-          --gold: #ffe27a; --pink: #ff8ad8; --prism: #8fd8ff; --ok: #7ee08a; }
+  :root { --bg: #0b1020; --panel: #121a30; --line: #2e3b61; --fg: #edebff; --dim: #929cc4;
+          --gold: #ffd166; --pink: #ff7ad9; --prism: #41d8ff; --ok: #7ee08a; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 "Segoe UI", system-ui, sans-serif; }
+  body { margin: 0; background: radial-gradient(ellipse at top, #1a2338 0%, var(--bg) 60%) fixed; color: var(--fg);
+         font: 16px/1.6 "Segoe UI", system-ui, sans-serif; }
   main { max-width: 920px; margin: 0 auto; padding: 0 20px 60px; }
-  header { padding: 56px 0 28px; text-align: center; }
+  header { padding: 48px 0 28px; text-align: center; }
+  header .logo { width: 128px; height: 128px; filter: drop-shadow(0 10px 30px #4d6bff55); }
   h1 { font-size: 2.4rem; margin: 0 0 8px; letter-spacing: .5px; }
   h1 .lucky { color: var(--gold); } h1 .super { color: var(--pink); }
   .tagline { color: var(--dim); font-size: 1.15rem; max-width: 640px; margin: 0 auto 26px; }
@@ -19,7 +22,7 @@
                font-weight: 600; border: 1px solid var(--line); color: var(--fg); }
   .buttons a.main { background: var(--prism); color: #0c1a22; border-color: var(--prism); }
   .preview { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; align-items: center; margin: 10px 0 40px; }
-  .preview img { max-width: 100%; border-radius: 8px; box-shadow: 0 8px 30px #0008; }
+  .preview img { max-width: 100%; filter: drop-shadow(0 8px 24px #000a); }
   h2 { font-size: 1.4rem; margin: 46px 0 14px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
@@ -39,6 +42,7 @@
 <body>
 <main>
 <header>
+  <img class="logo" src="icone.png" alt="">
   <h1>Compteur pity <span class="lucky">Lucky</span> / <span class="super">Super Lucky</span></h1>
   <p class="tagline">Une petite fenêtre par-dessus Aniimo qui compte vos captures toute seule et vous dit où vous en êtes de la garantie des Coups de chance.</p>
   <div class="buttons">

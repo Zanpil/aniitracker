@@ -9,10 +9,16 @@ import ctypes, json, os, queue, sys, threading, time
 import tkinter as tk
 from ctypes import wintypes
 
+from PIL import ImageTk
+
 import pity
+import theme
 
 # your files (counters, settings) sit next to the script, or next to the exe once built
 HERE = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
+# what ships with the program (inside the exe: unpacked to sys._MEIPASS)
+RES = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+ICON = os.path.join(RES, "images", "icone.ico")
 DATA = os.path.join(HERE, "data")
 EVENTS = os.path.join(DATA, "events.jsonl")
 WINDOW = os.path.join(DATA, "window.json")
@@ -24,15 +30,11 @@ DEFAULT_CONFIG = {"server": "EU", "reset_pity_weekly": True, "opacity": 0.9, "sh
                   "sound_threshold": 0.6,
                   "hotkeys": {"catch": "F7", "lucky": "F8", "super": "F9", "undo": "F6"}}
 
-BG, FG, DIM, TRACK = "#16161d", "#ecebf2", "#8d8aa0", "#2a2935"
-WARN, OK = "#ff6b6b", "#7ee08a"
-PRISM = "#8fd8ff"
-# logo text, fill, 3D shadow, frame colour
-STYLE = {"lucky": ("LUCKY!", "#ffe27a", "#a8711a", "#f2c14e"),
-         "super": ("SUPER LUCKY!", "#ff8ad8", "#4a6cff", "#c78bff")}
-FLASH = {"catch": {"lucky": OK, "super": OK}, "lucky": {"lucky": STYLE["lucky"][1], "super": OK},
-         "super": {"super": STYLE["super"][1]}, "undo": {"lucky": DIM, "super": DIM},
-         "set": {"lucky": OK, "super": OK}}
+NIGHT, WARN = "#0b1020", "#ff6b6b"
+# colour the big number takes for a moment, to show what was just counted
+FLASH = {"catch": {"lucky": theme.GREEN, "super": theme.GREEN}, "lucky": {"lucky": theme.WHITE, "super": theme.GREEN},
+         "super": {"super": theme.WHITE}, "undo": {"lucky": theme.DIM, "super": theme.DIM},
+         "set": {"lucky": theme.GREEN, "super": theme.GREEN}}
 SOUND_KIND = {"lucky": "lucky", "super": "super", "ball_success": "catch"}  # sons/<name>.wav -> event
 
 user32 = ctypes.windll.user32
@@ -215,48 +217,21 @@ def odds_line(name, o):
             f"{o.had_it * 100:.0f} % l'auraient déjà eu")
 
 
-def progress(o):
-    """Share of the way to the guarantee, e.g. '68 %' or '0,4 %'."""
-    v = min(o.pity / o.cap, 1) * 100
-    return (f"{v:.0f}" if v >= 10 or v == 0 else f"{v:.1f}".replace(".", ",")) + " %"
-
-
 class Bar:
-    """Left: catches since Monday, 'catches since the last strike / guarantee', strikes since Monday.
-    Right: strike logo and how far the guarantee is."""
+    """A Lucky or Super Lucky panel: a picture drawn by theme.py."""
 
-    def __init__(self, parent, kind, px):
-        self.kind, self.px = kind, px
-        self.w, self.h = px(300), px(80)
-        self.c = tk.Canvas(parent, width=self.w, height=self.h, bg=BG, highlightthickness=0)
+    def __init__(self, parent, kind, px, scale):
+        self.kind, self.px, self.scale = kind, px, scale
+        self.c = tk.Label(parent, bd=0, highlightthickness=0, bg=theme.KEY_HEX)
+        self.photo = None
 
     def pack(self):
-        self.c.pack(padx=self.px(6), pady=(self.px(6), 0))
+        self.c.pack(pady=(0, self.px(6)))
 
     def show(self, o, catches, number_color=None):
-        c, px, w, h = self.c, self.px, self.w, self.h
-        logo, fill, shadow, frame = STYLE[self.kind]
-        name = "Lucky" if self.kind == "lucky" else "Super Lucky"
-        c.delete("all")
-        c.create_rectangle(px(1), px(1), w - px(1), h - px(1), outline=frame, width=px(2))
-        c.create_text(px(14), px(14), text=f"{catches} capture{'s' if catches > 1 else ''}", anchor="w",
-                      fill=DIM, font=("Segoe UI", 9))
-        base = px(56)
-        count = c.create_text(px(14), base, text=str(o.pity), anchor="sw",
-                              fill=number_color or FG, font=("Segoe UI Semibold", 24))
-        c.create_text(c.bbox(count)[2] + px(4), base - px(6), text=f"/ {o.cap}", anchor="sw", fill=DIM,
-                      font=("Segoe UI Semibold", 13))
-        c.create_text(px(14), px(64), text=f"{o.done} {name} depuis lundi", anchor="w", fill=DIM,
-                      font=("Segoe UI", 9))
-        x, y = w - px(12), px(32)
-        c.create_text(x + px(1), y + px(2), text=logo, anchor="e", fill=shadow, font=("Segoe UI Black", 13))
-        c.create_text(x, y, text=logo, anchor="e", fill=fill, font=("Segoe UI Black", 13))
-        c.create_text(x, px(52), text=f"{progress(o)} de la pity", anchor="e", fill=FG, font=("Segoe UI", 9))
-        # progress towards the guarantee along the bottom edge
-        x0, x1, y1 = px(4), w - px(4), h - px(4)
-        c.create_rectangle(x0, y1 - px(3), x1, y1, fill=TRACK, width=0)
-        color = WARN if o.pity >= o.cap else OK if o.left == 1 else frame
-        c.create_rectangle(x0, y1 - px(3), x0 + (x1 - x0) * min(o.pity / o.cap, 1), y1, fill=color, width=0)
+        image = theme.pity_panel(self.kind, o.pity, o.cap, o.done, o.left, catches, self.scale, number_color)
+        self.photo = ImageTk.PhotoImage(image)  # kept: tk forgets pictures nobody holds
+        self.c.config(image=self.photo)
 
 
 def number(n):
@@ -268,20 +243,22 @@ class Banner:
     missing to Full, and how many Lucky / Super Lucky that makes. Lucky and Super Lucky counted
     since that reading are added as an estimate (≈) until the menu is read again."""
 
-    def __init__(self, overlay, px):
+    def __init__(self, overlay, px, scale):
         import floraison
-        self.fl, self.overlay, self.px = floraison, overlay, px
+        self.fl, self.overlay, self.px, self.scale = floraison, overlay, px, scale
         self.win = load_json(BANNER, {"x": None, "y": 8, "locked": False, "shown": True})
         self.data = load_json(READINGS, {"readings": {}, "last": None})
         self.top = tk.Toplevel(overlay.root)
         self.top.overrideredirect(True)
         self.top.attributes("-topmost", True)
         self.top.attributes("-alpha", overlay.cfg["opacity"])
-        self.top.configure(bg=BG)
-        self.w, self.h = px(640), px(62)
-        self.c = tk.Canvas(self.top, width=self.w, height=self.h, bg=BG, highlightthickness=0)
-        self.c.pack()
-        x = self.win["x"] if self.win["x"] is not None else (self.top.winfo_screenwidth() - self.w) // 2
+        self.top.configure(bg=theme.KEY_HEX)
+        self.top.attributes("-transparentcolor", theme.KEY_HEX)  # rounded corners
+        self.label = tk.Label(self.top, bd=0, highlightthickness=0, bg=theme.KEY_HEX)
+        self.label.pack()
+        self.photo = None
+        width = round(theme.W * scale)
+        x = self.win["x"] if self.win["x"] is not None else (self.top.winfo_screenwidth() - width) // 2
         self.top.geometry(f"+{x}+{self.win['y']}")
         self.locked = tk.BooleanVar(value=self.win["locked"])
         self.shown = tk.BooleanVar(value=self.win["shown"])
@@ -319,7 +296,7 @@ class Banner:
         for zone, r in sorted(self.data["readings"].items(), key=lambda kv: -kv[1]["ts"]):
             n = self.fl.needs(r["energy"])
             m.add_command(label=f"{zone} : {self.fl.STAGES[r['stage']][0]} · {number(r['energy'])} pts · "
-                                f"≈ {n['lucky']} Lucky ou {n['super']} Super",
+                                f"≈ {n['lucky']} Lucky ({n['lucky_best']} à {n['lucky_worst']}) ou {n['super']} Super",
                           command=lambda z=zone: self.choose(z))
         if self.data["readings"]:
             m.add_separator()
@@ -355,51 +332,22 @@ class Banner:
     def redraw(self):
         if not self.shown.get():
             return
-        c, px, w, h, fl = self.c, self.px, self.w, self.h, self.fl
-        c.delete("all")
-        c.create_rectangle(px(1), px(1), w - px(1), h - px(1), outline=PRISM, width=px(2))
+        fl = self.fl
+        ticks = [need for _, need in fl.STAGES[1:-1]]
         zone = self.data.get("last")
         r = self.data["readings"].get(zone)
         if not r:
-            c.create_text(px(14), h // 2 - px(2), anchor="w", fill=DIM, font=("Segoe UI", 10),
-                          text="FLORAISON · ouvre le menu Enrichir d'une zone pour lire son énergie prismatique")
-            return
-        energy, lucky, sup = self.estimate(r)
-        approx = lucky or sup
-        stage = max(i for i, (_, need) in enumerate(fl.STAGES) if energy >= need)
-        n = fl.needs(energy)
-        c.create_text(px(14), px(12), anchor="w", fill=DIM, font=("Segoe UI", 9),
-                      text=f"FLORAISON · {zone} · {fl.STAGES[stage][0]}")
-        main = c.create_text(px(14), px(48), anchor="sw", fill=FG, font=("Segoe UI Semibold", 18),
-                             text=f"{'≈ ' if approx else ''}{number(energy)}")
-        c.create_text(c.bbox(main)[2] + px(4), px(44), anchor="sw", fill=DIM, font=("Segoe UI Semibold", 11),
-                      text=f"/ {number(fl.FULL)}")
-        if n["missing"] == 0:
-            c.create_text(w - px(14), px(30), anchor="e", fill=OK, font=("Segoe UI Black", 13),
-                          text="PLEIN · Prismana garanti")
+            image = theme.floraison_panel(None, None, None, fl.FULL, None, 0, 0, "", ticks, self.scale,
+                                          hint="Ouvre le menu Enrichir d'une zone")
         else:
-            c.create_text(px(250), px(12), anchor="w", fill=FG, font=("Segoe UI", 9),
-                          text=f"il manque {number(n['missing'])} points")
-            line = c.create_text(px(250), px(46), anchor="sw", fill=STYLE["lucky"][1], font=("Segoe UI Black", 13),
-                                 text=f"≈ {n['lucky']} Lucky")
-            x = c.bbox(line)[2] + px(5)
-            more = c.create_text(x, px(44), anchor="sw", fill=DIM, font=("Segoe UI", 9),
-                                 text=f"({n['lucky_best']} à {n['lucky_worst']})")
-            x = c.bbox(more)[2] + px(10)
-            c.create_text(x, px(46), anchor="sw", fill=STYLE["super"][1], font=("Segoe UI Black", 13),
-                          text=f"ou {n['super']} Super Lucky")
-            if approx:
-                since = " + ".join(t for t in (f"{lucky} Lucky" if lucky else "", f"{sup} Super" if sup else "") if t)
-                c.create_text(w - px(14), px(12), anchor="e", fill=DIM, font=("Segoe UI", 8),
-                              text=f"estimé : {since} depuis la lecture")
-        # energy along the bottom edge, with a tick at each state's threshold
-        x0, x1, y1 = px(4), w - px(4), h - px(4)
-        c.create_rectangle(x0, y1 - px(4), x1, y1, fill=TRACK, width=0)
-        c.create_rectangle(x0, y1 - px(4), x0 + (x1 - x0) * energy / fl.FULL, y1,
-                           fill=OK if n["missing"] == 0 else PRISM, width=0)
-        for _, need in fl.STAGES[1:-1]:
-            x = x0 + (x1 - x0) * need / fl.FULL
-            c.create_line(x, y1 - px(8), x, y1, fill=DIM)
+            energy, lucky, sup = self.estimate(r)
+            stage = max(i for i, (_, need) in enumerate(fl.STAGES) if energy >= need)
+            n = fl.needs(energy)
+            since = " ".join(t for t in (f"+{lucky} Lucky" if lucky else "", f"+{sup} Super" if sup else "") if t)
+            image = theme.floraison_panel(zone, fl.STAGES[stage][0], energy, fl.FULL, n["missing"], n["lucky"],
+                                          n["super"], since, ticks, self.scale)
+        self.photo = ImageTk.PhotoImage(image)
+        self.label.config(image=self.photo)
 
 
 class Settings:
@@ -583,13 +531,15 @@ class Overlay:
         root.overrideredirect(True)
         root.attributes("-topmost", True)
         root.attributes("-alpha", cfg["opacity"])
-        root.configure(bg=BG)
+        root.configure(bg=theme.KEY_HEX)
+        root.attributes("-transparentcolor", theme.KEY_HEX)  # only the rounded panels show
         root.geometry(f"+{self.win['x']}+{self.win['y']}")
 
         self.hotkeys = None      # Hotkeys, restarted by the settings when a key changes
-        self.bars = {kind: Bar(root, kind, px) for kind in ("lucky", "super")}
-        self.status = tk.Label(root, bg=BG, fg=WARN, font=("Segoe UI", 8), anchor="w")  # packed on error
-        self.spacer = tk.Frame(root, bg=BG, height=px(6))
+        self.bars = {kind: Bar(root, kind, px, scale) for kind in ("lucky", "super")}
+        self.status = tk.Label(root, bg=NIGHT, fg=WARN, font=("Segoe UI", 8), anchor="w",
+                               wraplength=round(theme.W * scale))  # packed on error
+        self.spacer = tk.Frame(root, bg=theme.KEY_HEX, height=1)
         self.layout()
 
         self.menu = tk.Menu(root, tearoff=0)
@@ -600,7 +550,7 @@ class Overlay:
         root.bind("<ButtonRelease-1>", lambda e: self.save_window())
         root.bind("<Button-3>", self.popup)
 
-        self.banner = Banner(self, px) if cfg["floraison"] else None
+        self.banner = Banner(self, px, scale) if cfg["floraison"] else None
         self.rebuild()
         self.tick()
         self.poll()
@@ -927,6 +877,10 @@ def main():
             w.start()
     root = tk.Tk()
     root.title("Compteur pity Aniimo")
+    try:
+        root.iconbitmap(default=ICON)  # dialogs and settings
+    except tk.TclError:
+        pass
     overlay = Overlay(root, cfg, Log(EVENTS), inbox)
     overlay.watchers, overlay.hotkeys = watchers, hotkeys
     root.mainloop()
