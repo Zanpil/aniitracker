@@ -1,0 +1,17 @@
+# personal: counters, readings, recordings, window positions, settings, notes
+data/
+config.json
+test.txt
+NOTES-perso.md
+# the game's own sounds, extracted from your install by « Préparer les sons.bat »
+# (only their fingerprints, sons/empreintes.npz, are published)
+sons/*.wav
+sons/candidats/
+# Wwise audio decoder, downloaded separately (see README)
+tools/vgmstream/
+# builds: the exe goes to the GitHub releases
+distribution/*.exe
+*.zip
+build/
+__pycache__/
+*.pyc

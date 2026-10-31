@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compteur pity Aniimo</title>
+<meta name="description" content="Overlay non officiel pour Aniimo : compte vos captures tout seul, suit la garantie Lucky / Super Lucky et l'énergie prismatique des Floraisons.">
+<style>
+  :root { --bg: #101016; --panel: #16161d; --line: #2a2935; --fg: #ecebf2; --dim: #9a97ad;
+          --gold: #ffe27a; --pink: #ff8ad8; --prism: #8fd8ff; --ok: #7ee08a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 0 20px 60px; }
+  header { padding: 56px 0 28px; text-align: center; }
+  h1 { font-size: 2.4rem; margin: 0 0 8px; letter-spacing: .5px; }
+  h1 .lucky { color: var(--gold); } h1 .super { color: var(--pink); }
+  .tagline { color: var(--dim); font-size: 1.15rem; max-width: 640px; margin: 0 auto 26px; }
+  .buttons a { display: inline-block; margin: 6px; padding: 12px 22px; border-radius: 10px; text-decoration: none;
+               font-weight: 600; border: 1px solid var(--line); color: var(--fg); }
+  .buttons a.main { background: var(--prism); color: #0c1a22; border-color: var(--prism); }
+  .preview { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; align-items: center; margin: 10px 0 40px; }
+  .preview img { max-width: 100%; border-radius: 8px; box-shadow: 0 8px 30px #0008; }
+  h2 { font-size: 1.4rem; margin: 46px 0 14px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  .card p { margin: 0; color: var(--dim); font-size: .95rem; }
+  .card.c1 h3 { color: var(--ok); } .card.c2 h3 { color: var(--gold); } .card.c3 h3 { color: var(--pink); } .card.c4 h3 { color: var(--prism); }
+  ol li, ul li { margin: 6px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: .95rem; }
+  th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; }
+  th { background: var(--panel); }
+  kbd { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font: .9em Consolas, monospace; }
+  .note { background: var(--panel); border-left: 3px solid var(--gold); padding: 12px 16px; border-radius: 6px; color: var(--dim); }
+  footer { color: var(--dim); font-size: .85rem; text-align: center; margin-top: 50px; }
+  a { color: var(--prism); }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Compteur pity <span class="lucky">Lucky</span> / <span class="super">Super Lucky</span></h1>
+  <p class="tagline">Une petite fenêtre par-dessus Aniimo qui compte vos captures toute seule et vous dit où vous en êtes de la garantie des Coups de chance.</p>
+  <div class="buttons">
+    <a class="main" href="https://github.com/Zanpil/compteur-pity-aniimo/releases/latest">Télécharger pour Windows</a>
+    <a href="https://github.com/Zanpil/compteur-pity-aniimo">Voir le code sur GitHub</a>
+  </div>
+</header>
+
+<div class="preview">
+  <img src="apercu-compteur.png" alt="Le compteur : 114 / 200 avant le Lucky garanti, 266 / 500 avant le Super Lucky garanti">
+  <img src="apercu-floraison.png" alt="Le bandeau Floraison : 846 / 10 500, il manque 9 654 points, environ 32 Lucky ou 7 Super Lucky">
+</div>
+
+<h2>Ce qu'il fait</h2>
+<div class="cards">
+  <div class="card c1"><h3>Captures automatiques</h3><p>Chaque carte de capture qui apparaît à gauche de l'écran compte, captures de groupe comprises. Une capture de masse au Culbuton aussi.</p></div>
+  <div class="card c2"><h3>Lucky reconnus au son</h3><p>Il n'écoute que le jeu (pas Discord ni votre musique) et reconnaît « Lucky! » et « Super Lucky! ».</p></div>
+  <div class="card c3"><h3>Garantie en clair</h3><p>Captures depuis le dernier coup sur la capture garantie, pourcentage, coups obtenus depuis lundi, temps avant le reset.</p></div>
+  <div class="card c4"><h3>Bandeau Floraison</h3><p>Ouvrez le menu Enrichir : énergie prismatique de la zone, points manquants, et combien de Lucky ou Super Lucky il faut.</p></div>
+</div>
+
+<h2>Installer</h2>
+<ol>
+  <li>Téléchargez <b>Compteur pity Aniimo.zip</b> et dézippez-le dans un dossier à vous.</li>
+  <li>Lancez <b>Compteur pity Aniimo.exe</b>. Si Windows affiche « Windows a protégé votre ordinateur » (programme non signé) : <i>Informations complémentaires</i> &gt; <i>Exécuter quand même</i>.</li>
+  <li>Déjà capturé depuis lundi ? Clic droit sur le compteur &gt; <i>Régler les compteurs…</i></li>
+</ol>
+<p>Il faut Windows 10 (2004 ou plus récent) ou 11, le jeu en plein écran fenêtré ou fenêtré, <b>en français</b>, avec les effets sonores activés. Réglé en 2560×1440, mis à l'échelle pour les autres résolutions 16:9.</p>
+
+<h2>Utiliser</h2>
+<p>Rien à faire : chaque capture fait +1. Les touches servent seulement à corriger : <kbd>F7</kbd> capture oubliée, <kbd>F8</kbd> Lucky, <kbd>F9</kbd> Super Lucky, <kbd>F6</kbd> annuler.</p>
+<ul>
+  <li><b>Réglages</b> (clic droit &gt; <i>Réglages…</i>) : choisissez ce qui s'affiche (cadre Lucky, cadre Super Lucky, bandeau Floraison, opacité), changez les touches, choisissez le serveur.</li>
+  <li>Le jeu utilise <kbd>F7</kbd>, <kbd>F8</kbd> et <kbd>F9</kbd> pour ses photos : passez les touches du compteur sur le pavé numérique ou <kbd>Ctrl</kbd> + une touche.</li>
+  <li>Clic gauche maintenu : déplacer. Clic droit : les détails et le menu.</li>
+</ul>
+
+<h2>Les règles, tirées du jeu</h2>
+<table>
+  <tr><th></th><th>Déjà eus cette semaine</th><th>Chance par capture</th><th>Garanti à</th></tr>
+  <tr><td>Lucky</td><td>0 à 9</td><td>1 %</td><td>200</td></tr>
+  <tr><td>Lucky</td><td>10 et plus</td><td>0,5 %</td><td>400</td></tr>
+  <tr><td>Super Lucky</td><td>0</td><td>0,2 %</td><td>500</td></tr>
+  <tr><td>Super Lucky</td><td>1</td><td>0,1 %</td><td>1 000</td></tr>
+  <tr><td>Super Lucky</td><td>2 et plus</td><td>0,05 %</td><td>3 000</td></tr>
+</table>
+<p>Énergie prismatique d'une zone : Vide 0 · Très faible 501 · Léger 1 501 · Abondant 3 001 · Très élevé 6 001 · <b>Plein 10 500</b> (Aniimo prismana garanti). Un Lucky ajoute 275 à 500 points (302,5 en moyenne), un Super Lucky 1 500.</p>
+
+<h2>Est-ce sans risque ?</h2>
+<p class="note">Le compteur ne lit ni la mémoire ni le réseau du jeu et ne modifie aucun de ses fichiers. Il regarde une petite zone de l'écran et reçoit le son d'Aniimo par Windows, comme OBS ou Discord. C'est un <b>outil non officiel</b>, sans lien avec NetEase, et les conditions d'utilisation du jeu peuvent interdire les outils tiers : vous l'utilisez à vos risques.</p>
+
+<footer>
+  Code sous licence MIT · Aniimo, ses noms, sons et images appartiennent à NetEase · Projet non affilié.<br>
+  <a href="https://github.com/Zanpil/compteur-pity-aniimo">github.com/Zanpil/compteur-pity-aniimo</a>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,93 @@
+﻿COMPTEUR PITY LUCKY / SUPER LUCKY - ANIIMO
+=========================================
+
+Une petite fenêtre, toujours au-dessus du jeu, qui suit où tu en es de la
+garantie (pity) des Coups de chance (Lucky) et des Super Lucky.
+
+Il compte tout seul :
+- les captures, en regardant les notifications à gauche de l'écran
+  (une carte par Aniimo, captures de groupe et Culbuton compris) ;
+- les Lucky et les Super Lucky, en écoutant le son du jeu.
+Un bandeau en haut de l'écran suit aussi l'énergie prismatique des
+Floraisons (voir plus bas).
+
+Il ne touche pas au jeu : il ne lit ni sa mémoire ni ses fichiers. Il regarde
+l'écran et reçoit le son d'Aniimo par Windows, comme OBS ou Discord.
+
+
+INSTALLER
+---------
+1. Mets « Compteur pity Aniimo.exe » dans un dossier à toi
+   (par exemple Documents\Compteur pity). Il y crée config.json et data\.
+2. Double-clique dessus. Il met quelques secondes à s'ouvrir.
+   Si Windows affiche « Windows a protégé votre ordinateur » (le programme
+   n'est pas signé) : Informations complémentaires > Exécuter quand même.
+3. Si tu as déjà capturé depuis lundi : clic droit sur le compteur >
+   Régler les compteurs..., et entre où tu en es.
+
+
+CE QU'IL FAUT
+-------------
+- Windows 10 (version 2004 ou plus récente) ou Windows 11.
+- Le jeu en plein écran fenêtré ou en fenêtré (pas en plein écran exclusif).
+- Le jeu en français : le compteur lit « Niv. » et
+  « Capturer avec un Culbuton ».
+- Les effets sonores du jeu activés (pour les Lucky).
+- Testé en 2560x1440. Les autres résolutions en 16:9 devraient marcher.
+
+
+UTILISATION
+-----------
+Rien à faire : chaque capture fait +1. Les touches servent seulement à
+corriger :
+  F7  une capture qu'il n'a pas comptée
+  F8  un Lucky qu'il n'a pas reconnu
+  F9  un Super Lucky qu'il n'a pas reconnu
+  F6  annuler la dernière action
+Tant que le compteur tourne, ses touches ne vont plus au jeu. Or le jeu
+utilise F7 (appareil photo), F8 (photo rapide) et F9 : change-les dans les
+réglages (pavé numérique ou Ctrl + une touche, par exemple).
+
+Clic gauche maintenu : déplacer. Clic droit : détails, régler les compteurs,
+réglages, verrouiller la position, quitter.
+
+RÉGLAGES (clic droit > Réglages...) : ce qui s'affiche (cadre Lucky, cadre
+Super Lucky, bandeau Floraison, opacité), les touches de correction (clique
+sur une action puis appuie sur la nouvelle touche), et le serveur pour
+l'heure du reset.
+
+- Il ne voit les captures que quand le jeu est la fenêtre active.
+- Posé sur les notifications (à gauche, au milieu de l'écran), il
+  disparaît des captures d'écran et du partage Discord. Sinon, il
+  cacherait les cartes à sa propre détection. Posé ailleurs, on le voit.
+- Reset le lundi à 04:00 UTC (serveur Europe) : tout repart à 0.
+
+
+BANDEAU FLORAISON
+-----------------
+Ouvre le menu Enrichir d'une Floraison et clique sur une zone : le bandeau
+affiche son énergie prismatique (sur 10 500), ce qui manque pour qu'elle soit
+pleine (un Aniimo prismana apparaît alors à coup sûr) et combien de Lucky ou
+de Super Lucky ça représente. Un Lucky donne 275 à 500 points (302,5 en
+moyenne), un Super Lucky 1 500. Les Lucky obtenus ensuite sont ajoutés en
+estimation (≈) jusqu'à ta prochaine visite du menu. Clic droit sur le
+bandeau : les autres zones lues.
+
+
+SI ÇA NE COMPTE PAS
+-------------------
+Jeu ouvert, double-clique sur « Tester le compteur.bat » et envoie le
+contenu de test.txt (créé à côté du programme).
+
+
+RÈGLES UTILISÉES
+----------------
+Lucky        : 1 % par capture, garanti à 200 (0 à 9 Lucky cette semaine)
+               0,5 %, garanti à 400 (10 Lucky et plus)
+Super Lucky  : 0,2 %, garanti à 500 (aucun cette semaine)
+               0,1 %, garanti à 1000 (1)
+               0,05 %, garanti à 3000 (2 et plus)
+Source : les fichiers du jeu (formules 1126 et 1127), identiques à la page
+« Probability Details » du jeu.
+
+Projet et mises à jour : https://github.com/Zanpil/compteur-pity-aniimo
