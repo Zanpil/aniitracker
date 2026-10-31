@@ -1,0 +1,94 @@
+# Builds the counter on GitHub's servers from this repository's code, has the exe signed by
+# SignPath (once the SignPath secret and variables are set, see below) and prepares the release
+# as a draft, to be checked and published by hand.
+#
+# - push a tag "v1.2.3" (equal to VERSION in overlay.py): build, signature, draft release;
+# - "Run workflow" on the Actions tab: build and signature only, the zip is kept 7 days.
+#
+# SignPath (https://signpath.org), in the repository's Settings > Secrets and variables > Actions:
+#   secret   SIGNPATH_API_TOKEN        token of the SignPath user allowed to submit signing requests
+#   variable SIGNPATH_ORGANIZATION_ID  the organization's id
+#   variable SIGNPATH_PROJECT_SLUG     the project ("compteur-pity-aniimo")
+#   variable SIGNPATH_POLICY_SLUG      the signing policy ("release-signing")
+# Without the token, the exe is not signed and everything else still runs.
+name: Version
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # the draft release
+  actions: read    # SignPath downloads the unsigned exe from this run
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Tag = version of the code
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: python tools/build.py tag "${{ github.ref_name }}"
+
+      - name: Dependencies
+        run: pip install -r requirements.txt pyinstaller==6.20.0
+
+      - name: Exe
+        run: python tools/build.py
+
+      - name: Unsigned exe, for SignPath
+        id: unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: exe-non-signe
+          path: distribution/Compteur pity Aniimo.exe
+          retention-days: 7
+
+      - name: Signature (SignPath)
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600  # each signature is approved by hand
+          output-artifact-directory: signed
+
+      - name: Signed exe in place of the unsigned one
+        if: env.SIGNPATH_API_TOKEN != ''
+        shell: pwsh
+        run: |
+          Copy-Item -LiteralPath "signed/Compteur pity Aniimo.exe" -Destination distribution -Force
+          $s = Get-AuthenticodeSignature -LiteralPath "distribution/Compteur pity Aniimo.exe"
+          if ($s.Status -ne 'Valid') { throw "signature: $($s.Status)" }
+          "Signed by $($s.SignerCertificate.Subject)"
+
+      - name: Zip
+        run: python tools/build.py zip
+
+      - name: Zip, for a test without a release
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        uses: actions/upload-artifact@v7
+        with:
+          name: Compteur-pity-Aniimo
+          path: Compteur-pity-Aniimo.zip
+          retention-days: 7
+
+      - name: Draft release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python tools/build.py notes notes.md
+          gh release create "${{ github.ref_name }}" Compteur-pity-Aniimo.zip --draft --title "Compteur pity Aniimo ${{ github.ref_name }}" --notes-file notes.md

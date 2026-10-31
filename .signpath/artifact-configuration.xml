@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What SignPath signs in the artifact that .github/workflows/version.yml uploads (a zip holding
+     the exe), with the product name the exe must carry (tools/build.py writes it).
+     The configuration in use is the one entered in the SignPath project; this copy is for reference. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="Compteur pity Aniimo.exe" product-name="Compteur pity Aniimo">
+      <authenticode-sign/>
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
