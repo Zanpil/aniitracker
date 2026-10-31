@@ -4,11 +4,11 @@
 
 Petite fenêtre toujours au-dessus du jeu qui **compte toute seule vos captures** dans Aniimo et suit la garantie (pity) des **Coups de chance (Lucky)** et des **Super Lucky**. Un bandeau optionnel suit aussi l'**énergie prismatique** des Floraisons.
 
-**[Télécharger](https://github.com/Zanpil/compteur-pity-aniimo/releases/latest)** · **[Page du projet](https://zanpil.github.io/compteur-pity-aniimo/)** · **[Nouveautés](CHANGELOG.md)**
+**[Télécharger](https://github.com/Zanpil/compteur-pity-aniimo/releases/latest)** · **[Page du projet](https://zanpil.github.io/compteur-pity-aniimo/)** · **[Nouveautés](CHANGELOG.md)** · **[Code signing policy](#code-signing-policy)**
 
 ![Le compteur](docs/apercu-compteur.png) ![Le bandeau Floraison](docs/apercu-floraison.png)
 
-> **Outil non officiel**, sans lien avec NetEase. Il ne lit ni la mémoire ni le réseau du jeu et ne modifie aucun fichier : il regarde une petite zone de l'écran et reçoit le son d'Aniimo par Windows, comme le font OBS ou Discord. Les conditions d'utilisation du jeu peuvent interdire les outils tiers : vous l'utilisez à vos risques.
+> **Outil non officiel**, sans lien avec NetEase. Il ne lit ni la mémoire ni le réseau du jeu et ne modifie aucun fichier : il regarde une petite zone de l'écran et reçoit le son d'Aniimo par Windows, comme le font OBS ou Discord. Il ne se connecte à Internet que pour chercher ses mises à jour, si vous l'acceptez (voir [Confidentialité](#confidentialité-privacy-policy)). Les conditions d'utilisation du jeu peuvent interdire les outils tiers : vous l'utilisez à vos risques.
 
 ## Ce qu'il fait
 
@@ -31,7 +31,17 @@ Il faut :
 
 Il a été réglé en 2560×1440. Les autres résolutions en 16:9 sont mises à l'échelle et devraient marcher.
 
-Si rien ne se compte : double-cliquez sur **`Tester le compteur.bat`**, jeu ouvert. Il vérifie le son, l'écran et les fichiers, et écrit le résultat dans `test.txt`.
+Si rien ne se compte : jeu ouvert, menu > **Vérifier le fonctionnement**. Il vérifie le son, l'écran et les fichiers, donne les dernières erreurs notées, et écrit le résultat dans `test.txt`.
+
+### Mises à jour
+
+Au premier lancement, le compteur demande s'il peut chercher ses nouvelles versions sur GitHub. Quand une version sort, la bulle porte un point doré et le menu propose **Installer la version…**. Le compteur la télécharge, vérifie son empreinte SHA-256, remplace le programme et redémarre. `config.json` et `data\` (compteurs, réglages, place des panneaux) ne sont pas touchés. Sans recherche automatique : menu > *Rechercher une mise à jour*.
+
+Cela marche à partir de la 1.3.0. Pour passer d'une version plus ancienne à la 1.3.0, remplacez `Compteur pity Aniimo.exe` par le nouveau, dans le même dossier : vos compteurs restent.
+
+### Lancer avec Windows
+
+Réglages > *Lancer le compteur avec Windows* : le compteur démarre avec Windows et attend Aniimo. Ses panneaux apparaissent quand le jeu se lance et disparaissent quand il se ferme. Relancez le compteur pour afficher ses panneaux et son menu sans le jeu.
 
 ## Utiliser
 
@@ -48,7 +58,7 @@ Une touche appuyée juste après une détection automatique est absorbée : pas 
 
 **Tant que le compteur tourne, ses touches ne vont plus au jeu.** Or le jeu utilise F7 (appareil photo), F8 (photo rapide) et F9. Changez-les dans les réglages, par exemple pour le pavé numérique ou Ctrl + F7.
 
-- **La bulle** (le logo) : un clic ouvre le **menu**, qui reste ouvert jusqu'à ce que vous le fermiez (✕, Échap, la bulle à nouveau). Le clic droit sur un panneau ouvre le même menu. On y trouve les détails, les corrections, les zones Floraison lues, *Régler les compteurs…*, *Réglages…* et *Quitter*.
+- **La bulle** (le logo) : un clic ouvre le **menu**, qui reste ouvert jusqu'à ce que vous le fermiez (✕, Échap, la bulle à nouveau). Le clic droit sur un panneau ouvre le même menu. On y trouve les détails, les corrections, les zones Floraison lues, *Régler les compteurs…*, *Réglages…*, *Vérifier le fonctionnement*, *Rechercher une mise à jour* et *Quitter*.
 - **Glisser un panneau** : le déplacer seul. **Maj + glisser** : déplacer tous les panneaux ensemble. Approché d'un autre panneau ou d'un bord de l'écran, il s'aimante.
 - **Menu > Panneaux** : chaque panneau se **verrouille** (il ne bouge plus) et se **lie** aux autres (les panneaux liés se déplacent ensemble).
 - **Ctrl + molette** sur un panneau : l'agrandir ou le rétrécir (60 à 160 %), ou par les réglages.
@@ -61,10 +71,13 @@ Clic droit sur le compteur ou sur le bandeau > **Réglages…**. Les changements
 - **Taille de chaque panneau** : Lucky, Super Lucky, Floraison et bulle, de 60 à 160 %.
 - **Touches de correction** : cliquez sur une action puis appuyez sur la nouvelle touche. Une touche seule du pavé numérique, une touche F, ou une combinaison avec Ctrl, Alt ou Maj. Échap annule, *Aucune* retire la touche.
 - **Serveur** : Europe, Amérique ou Asie, pour l'heure du reset du lundi.
+- **Démarrage et mises à jour** : lancer le compteur avec Windows, chercher les nouvelles versions au démarrage.
 
 ### Panneau Floraison
 
 Ouvrez le menu **Enrichir** d'une Floraison et cliquez sur une zone. Le compteur lit son nom, son état et la barre, puis calcule les points. Chaque zone lue est retenue : clic droit sur le bandeau pour revoir les autres.
+
+La barre montre l'avancée dans l'état de la zone (« Abondant 81 % »), comme celle du menu Enrichir. Le compteur attend que la barre du jeu s'arrête avant de la lire. Le grand nombre est l'énergie totale, sur 10 500.
 
 L'encadré « Restant » donne les points manquants, et leur équivalent en Lucky, en Super Lucky et en **Floraisons** (enrichissements). Les Lucky obtenus ensuite sont ajoutés avec leur gain moyen (« ≈ ») jusqu'à la lecture suivante. Le gain du fruit de veine n'est pas compté : rouvrez le menu après l'avoir cueilli.
 
@@ -99,16 +112,16 @@ Testé sur trois vidéos de captures : des captures simples, des captures de gro
 
 ## Depuis les sources
 
-Python 3.12 avec `numpy` et `opencv-python` :
+Python 3.12 :
 
 ```
-pip install numpy opencv-python
+pip install -r requirements.txt
 pythonw overlay.py
 ```
 
-- `Construire le programme.bat` fabrique l'exe avec PyInstaller (`pip install pyinstaller`).
+- `python tools/build.py` fabrique l'exe avec PyInstaller (`pip install pyinstaller`), puis `python tools/build.py zip` le zip d'une version. Les versions publiées sont construites par GitHub Actions à partir de ce dépôt (`.github/workflows/version.yml`).
 - `python overlay.py --test` lance la vérification.
-- `Préparer les sons.bat` réextrait les sons du jeu dans `sons/`, depuis votre installation d'Aniimo (`tools/extract_sounds.py <dossier du jeu>`). Il faut [vgmstream-cli](https://github.com/vgmstream/vgmstream/releases) dans `tools/vgmstream/`. Ensuite, `python detect.py --empreintes` refait les empreintes. Ce n'est utile qu'après une mise à jour du jeu qui changerait les sons.
+- `python tools/extract_sounds.py` réextrait les sons du jeu dans `sons/`, depuis votre installation d'Aniimo (trouvée par Steam, ou donnez son dossier). Il faut [vgmstream-cli](https://github.com/vgmstream/vgmstream/releases) dans `tools/vgmstream/`. Ensuite, `python detect.py --empreintes` refait les empreintes. Ce n'est utile qu'après une mise à jour du jeu qui changerait les sons.
 
 | Fichier | Rôle |
 |---|---|
@@ -118,8 +131,27 @@ pythonw overlay.py
 | `cards.py` | les cartes de capture et le Culbuton, à l'écran |
 | `detect.py`, `game_audio.py` | la reconnaissance des sons, la réception du son du jeu seul |
 | `floraison.py` | la lecture du menu Enrichir et les règles de l'énergie prismatique |
+| `updater.py` | les mises à jour : dernière version sur GitHub, téléchargement vérifié, remplacement de l'exe |
+| `tools/build.py` | la fabrication de l'exe et du zip, sur votre PC ou sur GitHub |
 | `sons/empreintes.npz`, `images/` | les empreintes des sons et trois petits modèles d'image (« Niv. », deux titres) |
 | `data/events.jsonl` | chez vous : l'historique de vos captures, à sauvegarder |
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+*Demande en cours auprès de SignPath Foundation : tant qu'elle n'est pas acceptée, le programme n'est pas signé et Windows affiche son avertissement.*
+
+- Le programme est construit par GitHub Actions, à partir du code de ce dépôt (`.github/workflows/version.yml`), puis signé. Seul le programme de ce projet est signé.
+- Chaque signature est approuvée à la main avant la publication d'une version.
+- Committers and reviewers : [Zanpil](https://github.com/Zanpil). Approvers : [Zanpil](https://github.com/Zanpil).
+- Les comptes GitHub et SignPath de l'équipe utilisent l'authentification à deux facteurs.
+
+## Confidentialité (privacy policy)
+
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+
+Le compteur ne se connecte à Internet que pour ses mises à jour, et seulement si vous l'avez accepté (il le demande au premier lancement, et ça se change dans les réglages) ou si vous les cherchez depuis le menu. Il demande alors à GitHub le numéro de la dernière version, puis télécharge le zip si vous l'installez. Il n'envoie rien d'autre : ni vos captures, ni vos réglages, ni rien sur votre PC.
 
 ## Licence
 

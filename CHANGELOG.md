@@ -2,6 +2,24 @@
 
 ## 1.3.0 — 31 octobre 2026
 
+**Mises à jour en un clic**
+- Le compteur peut chercher lui-même les nouvelles versions sur GitHub. Il vous le demande au premier lancement, et ça se change dans les réglages. Quand une version sort, la bulle porte un **point doré** et le menu propose *Installer la version…*. Le compteur la télécharge, vérifie qu'elle n'est pas abîmée, remplace le programme et redémarre. Vos compteurs, vos réglages et la place des panneaux sont gardés : plus besoin de supprimer le dossier.
+- Ça marche à partir de cette version : la 1.3.0 s'installe encore à la main, en remplaçant l'ancien `Compteur pity Aniimo.exe` par le nouveau.
+
+**Lancement avec Windows**
+- Réglages > *Lancer le compteur avec Windows* : le compteur démarre en arrière-plan avec Windows et attend Aniimo. Ses panneaux apparaissent quand le jeu se lance et disparaissent quand il se ferme.
+- Lancé une deuxième fois, le compteur ne dit plus « tourne déjà » : celui qui tourne affiche ses panneaux et ouvre son menu.
+
+**Floraison**
+- La barre du panneau suit maintenant **celle du jeu**. Elle montre l'avancée dans l'état de la zone (« Abondant 81 % »), comme le menu Enrichir. Avant, elle montrait le total sur 10 500 et ne ressemblait pas à la barre du jeu. Le total et le reste à remplir sont toujours affichés.
+- Lecture plus stable : le compteur attend que la barre du jeu s'arrête (elle se remplit à l'ouverture du menu et quand on change de zone) et ignore les petits écarts de mesure. Le panneau ne clignote plus et ne fait plus de va-et-vient.
+- Les noms de zone sont mieux reconnus, même sur deux lignes ou sous l'étiquette « Augmenter ». Une zone non reconnue n'est plus enregistrée en « Zone ? ».
+
+**Fiabilité**
+- Une erreur imprévue ne peut plus arrêter le comptage. Elle s'affiche sous les panneaux, elle est notée dans `data\erreurs.txt`, et le compteur continue.
+- Si l'historique des captures est bloqué un instant (antivirus, dossier synchronisé avec OneDrive), le compteur réessaie. Il garde les captures en mémoire et les enregistre dès que c'est possible.
+- Menu > *Vérifier le fonctionnement* remplace `Tester le compteur.bat`. Il vérifie le son du jeu, l'écran et les fichiers, et donne les dernières erreurs notées.
+
 **Menu plus facile**
 - Nouvelle **bulle** flottante (le logo) : un clic ouvre le menu. On la déplace et la redimensionne comme les panneaux, et on peut la cacher dans les réglages.
 - Le menu est maintenant une petite fenêtre qui **reste ouverte** jusqu'à ce qu'on la ferme : ✕, Échap, la bulle à nouveau ou une action. Le clic droit sur un panneau ouvre le même menu.

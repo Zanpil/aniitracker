@@ -12,7 +12,8 @@ Un troisième panneau suit l'énergie prismatique des Floraisons (voir plus
 bas).
 
 Il ne touche pas au jeu : il ne lit ni sa mémoire ni ses fichiers. Il regarde
-l'écran et reçoit le son d'Aniimo par Windows, comme OBS ou Discord.
+l'écran et reçoit le son d'Aniimo par Windows, comme OBS ou Discord. Il ne se
+connecte à Internet que pour chercher ses mises à jour, si tu l'acceptes.
 
 
 INSTALLER
@@ -24,6 +25,25 @@ INSTALLER
    n'est pas signé) : Informations complémentaires > Exécuter quand même.
 3. Si tu as déjà capturé depuis lundi : clic droit sur le compteur >
    Régler les compteurs..., et entre où tu en es.
+
+
+MISES À JOUR
+------------
+Au premier lancement, le compteur demande s'il peut chercher ses nouvelles
+versions sur GitHub. Quand une version sort, la bulle porte un point doré et
+le menu propose « Installer la version... » : il la télécharge, la vérifie,
+remplace le programme et redémarre. Tes compteurs et tes réglages restent.
+Sinon : menu > Rechercher une mise à jour.
+Depuis une version d'avant la 1.3.0 : remplace juste
+« Compteur pity Aniimo.exe » par le nouveau, dans le même dossier.
+
+
+LANCER AVEC WINDOWS
+-------------------
+Réglages > Lancer le compteur avec Windows : il démarre avec Windows et
+attend Aniimo. Ses panneaux apparaissent quand le jeu se lance et
+disparaissent quand il se ferme. Relance le compteur pour voir ses panneaux
+et son menu sans le jeu.
 
 
 CE QU'IL FAUT
@@ -61,7 +81,8 @@ Lucky, Super Lucky et Floraison sont trois panneaux séparés :
 
 RÉGLAGES (menu > Réglages...) : les panneaux affichés, la taille de chacun,
 l'opacité, les touches de correction (clique sur une action puis appuie sur
-la nouvelle touche), et le serveur pour l'heure du reset.
+la nouvelle touche), le serveur pour l'heure du reset, le lancement avec
+Windows et les mises à jour.
 
 - Il ne voit les captures que quand le jeu est la fenêtre active.
 - Posé sur les notifications (à gauche, au milieu de l'écran), il
@@ -73,8 +94,9 @@ la nouvelle touche), et le serveur pour l'heure du reset.
 PANNEAU FLORAISON
 -----------------
 Ouvre le menu Enrichir d'une Floraison et clique sur une zone : le panneau
-affiche son énergie prismatique (sur 10 500), ce qui manque pour qu'elle soit
-pleine (un Aniimo prismana apparaît alors à coup sûr) et combien de Lucky,
+affiche son énergie prismatique (sur 10 500), sa barre comme dans le jeu
+(l'avancée dans son état, par exemple Abondant 81 %), ce qui manque pour
+qu'elle soit pleine (un Aniimo prismana apparaît alors à coup sûr) et combien de Lucky,
 de Super Lucky ou de Floraisons ça représente. Un Lucky donne 275 à 500
 points (302,5 en moyenne), un Super Lucky 1 500, un enrichissement environ
 480. Les Lucky obtenus ensuite sont ajoutés en estimation (≈) jusqu'à ta
@@ -83,8 +105,9 @@ prochaine visite du menu. Clic droit sur le panneau : les autres zones lues.
 
 SI ÇA NE COMPTE PAS
 -------------------
-Jeu ouvert, double-clique sur « Tester le compteur.bat » et envoie le
-contenu de test.txt (créé à côté du programme).
+Jeu ouvert, menu > Vérifier le fonctionnement, et envoie le contenu de
+test.txt (créé à côté du programme). S'il existe, joins aussi
+data\erreurs.txt.
 
 
 RÈGLES UTILISÉES

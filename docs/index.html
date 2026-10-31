@@ -71,6 +71,7 @@
   <li>Lancez <b>Compteur pity Aniimo.exe</b>. Si Windows affiche « Windows a protégé votre ordinateur » (programme non signé) : <i>Informations complémentaires</i> &gt; <i>Exécuter quand même</i>.</li>
   <li>Déjà capturé depuis lundi ? Clic droit sur le compteur &gt; <i>Régler les compteurs…</i></li>
 </ol>
+<p><b>Mises à jour</b> : à partir de la 1.3.0, le compteur peut chercher ses nouvelles versions (il vous le demande au premier lancement). Quand une version sort, la bulle porte un point doré et le menu propose <i>Installer la version…</i> : il la télécharge, la vérifie et redémarre, en gardant vos compteurs et vos réglages. Depuis une version plus ancienne, remplacez simplement <b>Compteur pity Aniimo.exe</b> par le nouveau.</p>
 <p>Il faut Windows 10 (2004 ou plus récent) ou 11, le jeu en plein écran fenêtré ou fenêtré, <b>en français</b>, avec les effets sonores activés. Réglé en 2560×1440, mis à l'échelle pour les autres résolutions 16:9.</p>
 
 <h2>Utiliser</h2>
@@ -81,6 +82,8 @@
   <li>Un clic sur la <b>bulle</b> (le logo) ouvre le menu, qui reste ouvert jusqu'à ce que vous le fermiez.</li>
   <li>Chaque panneau se place où vous voulez : glisser pour en déplacer un, <kbd>Maj</kbd> + glisser pour tous. Ils s'aimantent entre eux et aux bords de l'écran. Dans le menu, chacun se verrouille ou se lie aux autres.</li>
   <li><kbd>Ctrl</kbd> + molette sur un panneau pour l'agrandir ou le rétrécir. Clic droit : les détails et le menu.</li>
+  <li>Réglages &gt; <i>Lancer le compteur avec Windows</i> : il attend Aniimo en arrière-plan et ses panneaux apparaissent quand le jeu se lance.</li>
+  <li>Quelque chose ne se compte pas ? Jeu ouvert, menu &gt; <i>Vérifier le fonctionnement</i>.</li>
 </ul>
 
 <h2>Les règles, tirées du jeu</h2>
@@ -95,10 +98,25 @@
 <p>Énergie prismatique d'une zone : Vide 0 · Très faible 501 · Léger 1 501 · Abondant 3 001 · Très élevé 6 001 · <b>Plein 10 500</b> (Aniimo prismana garanti). Un Lucky ajoute 275 à 500 points (302,5 en moyenne), un Super Lucky 1 500.</p>
 
 <h2>Est-ce sans risque ?</h2>
-<p class="note">Le compteur ne lit ni la mémoire ni le réseau du jeu et ne modifie aucun de ses fichiers. Il regarde une petite zone de l'écran et reçoit le son d'Aniimo par Windows, comme OBS ou Discord. C'est un <b>outil non officiel</b>, sans lien avec NetEase, et les conditions d'utilisation du jeu peuvent interdire les outils tiers : vous l'utilisez à vos risques.</p>
+<p class="note">Le compteur ne lit ni la mémoire ni le réseau du jeu et ne modifie aucun de ses fichiers. Il regarde une petite zone de l'écran et reçoit le son d'Aniimo par Windows, comme OBS ou Discord. Il ne se connecte à Internet que pour ses mises à jour, si vous l'acceptez. C'est un <b>outil non officiel</b>, sans lien avec NetEase, et les conditions d'utilisation du jeu peuvent interdire les outils tiers : vous l'utilisez à vos risques.</p>
+
+<h2 id="signature">Code signing policy</h2>
+<p>Free code signing provided by <a href="https://about.signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>.</p>
+<p class="note">Demande en cours auprès de SignPath Foundation : tant qu'elle n'est pas acceptée, le programme n'est pas signé et Windows affiche son avertissement.</p>
+<ul>
+  <li>Le programme est construit par GitHub Actions à partir du <a href="https://github.com/Zanpil/compteur-pity-aniimo">code du dépôt</a>, puis signé. Seul le programme de ce projet est signé.</li>
+  <li>Chaque signature est approuvée à la main avant la publication d'une version.</li>
+  <li>Committers and reviewers : <a href="https://github.com/Zanpil">Zanpil</a>. Approvers : <a href="https://github.com/Zanpil">Zanpil</a>.</li>
+  <li>Les comptes GitHub et SignPath de l'équipe utilisent l'authentification à deux facteurs.</li>
+</ul>
+
+<h2 id="confidentialite">Confidentialité (privacy policy)</h2>
+<p>This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.</p>
+<p>Le compteur ne se connecte à Internet que pour ses mises à jour, et seulement si vous l'avez accepté (il le demande au premier lancement, et ça se change dans les réglages) ou si vous les cherchez depuis le menu. Il demande alors à GitHub le numéro de la dernière version, puis télécharge le zip si vous l'installez. Il n'envoie rien d'autre : ni vos captures, ni vos réglages, ni rien sur votre PC.</p>
 
 <footer>
   Code sous licence MIT · Aniimo, ses noms, sons et images appartiennent à NetEase · Projet non affilié.<br>
+  <a href="#signature">Code signing policy</a> · <a href="#confidentialite">Confidentialité</a><br>
   <a href="https://github.com/Zanpil/compteur-pity-aniimo">github.com/Zanpil/compteur-pity-aniimo</a>
 </footer>
 </main>

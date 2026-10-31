@@ -3,9 +3,9 @@
 Never touches the game process: actions come from global hotkeys (RegisterHotKey), from the
 capture cards seen on screen (cards.Watcher) and from the game's sound, which Windows hands over
 (detect.Listener), all through the same queue.
-Run with: pythonw overlay.py  (or the exe built by build_exe.bat)
+Run with: pythonw overlay.py  (or the exe built by tools/build.py)
 """
-import ctypes, json, os, queue, sys, threading, time
+import ctypes, json, os, queue, subprocess, sys, threading, time, traceback
 import tkinter as tk
 from ctypes import wintypes
 
@@ -13,25 +13,35 @@ from PIL import ImageTk
 
 import pity
 import theme
+import updater
+
+VERSION = "1.3.0"
 
 # your files (counters, settings) sit next to the script, or next to the exe once built
 HERE = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
 # what ships with the program (inside the exe: unpacked to sys._MEIPASS)
 RES = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
 ICON = os.path.join(RES, "images", "icone.ico")
+# how to start this program again (its self-test, the new version): the exe, or python and this script
+PROGRAM = [sys.executable] if getattr(sys, "frozen", False) else [
+    os.path.join(os.path.dirname(sys.executable), "pythonw.exe"), os.path.abspath(__file__)]
 DATA = os.path.join(HERE, "data")
 EVENTS = os.path.join(DATA, "events.jsonl")
 WINDOW = os.path.join(DATA, "window.json")
 BANNER = os.path.join(DATA, "window_floraison.json")
 READINGS = os.path.join(DATA, "floraison.json")
+ERRORS = os.path.join(DATA, "erreurs.txt")
 CONFIG = os.path.join(HERE, "config.json")
+# check_updates: None until the player is asked
 DEFAULT_CONFIG = {"server": "EU", "reset_pity_weekly": True, "opacity": 0.9,
                   "show_lucky": True, "show_super": True, "show_floraison": True, "show_icon": True,
                   "sound_detection": True, "sound_catch": False, "screen_cards": True, "floraison": True,
-                  "sound_threshold": 0.6, "floraison_gain": 480,
+                  "sound_threshold": 0.6, "floraison_gain": 480, "check_updates": None,
                   "hotkeys": {"catch": "F7", "lucky": "F8", "super": "F9", "undo": "F6"}}
+MUTEX, SHOW_EVENT = "AniimoPityOverlay", "AniimoPityOverlayShow"
+RUN_KEY, RUN_NAME = r"Software\Microsoft\Windows\CurrentVersion\Run", "Compteur pity Aniimo"
 
-NIGHT, WARN = "#0b1020", "#ff6b6b"
+NIGHT, WARN, NOTE = "#0b1020", "#ff6b6b", "#41d8ff"
 # colour the big number takes for a moment, to show what was just counted
 FLASH = {"catch": {"lucky": theme.GREEN, "super": theme.GREEN}, "lucky": {"lucky": theme.WHITE, "super": theme.GREEN},
          "super": {"super": theme.WHITE}, "undo": {"lucky": theme.DIM, "super": theme.DIM},
@@ -45,6 +55,12 @@ user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
 user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND] + [ctypes.c_int] * 4 + [wintypes.UINT]
 user32.SetWindowDisplayAffinity.argtypes = [wintypes.HWND, wintypes.DWORD]
 user32.MessageBoxW.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
+kernel32.CreateMutexW.restype = kernel32.CreateEventW.restype = kernel32.OpenEventW.restype = wintypes.HANDLE
+kernel32.CreateMutexW.argtypes = (ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR)
+kernel32.CreateEventW.argtypes = (ctypes.c_void_p, wintypes.BOOL, wintypes.BOOL, wintypes.LPCWSTR)
+kernel32.OpenEventW.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR)
+kernel32.SetEvent.argtypes = kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+kernel32.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
 MOD = {"CTRL": 2, "ALT": 1, "SHIFT": 4, "WIN": 8}
 NAMED_VK = {"ADD": 0x6B, "SUBTRACT": 0x6D, "MULTIPLY": 0x6A, "DIVIDE": 0x6F, "DECIMAL": 0x6E,
             "INSERT": 0x2D, "DELETE": 0x2E, "HOME": 0x24, "END": 0x23, "PAGEUP": 0x21,
@@ -145,11 +161,51 @@ class Hotkeys:
         self.thread = None
 
 
+def retry(write, tries=6):
+    """Write to a file, again for a moment if it fails: an antivirus or a synced folder
+    (OneDrive) can hold a file for a few tenths of a second."""
+    for i in range(tries):
+        try:
+            return write()
+        except PermissionError:
+            if i == tries - 1:
+                raise
+            time.sleep(0.05 * 2 ** i)  # 1.5 s in all
+
+
+def log_error(where, exc_info=None):
+    """Note an unexpected error at the end of data\\erreurs.txt; the self-test shows the last ones."""
+    text = "".join(traceback.format_exception(*exc_info)) if exc_info else traceback.format_exc()
+    try:
+        if os.path.exists(ERRORS) and os.path.getsize(ERRORS) > 200_000:
+            with open(ERRORS, encoding="utf-8", errors="replace") as f:
+                kept = f.read()[-100_000:]
+            with open(ERRORS, "w", encoding="utf-8") as f:
+                f.write(kept)
+        with open(ERRORS, "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} · {VERSION} · {where}\n{text}\n")
+    except OSError:
+        pass
+    if sys.stderr:  # from the sources, in a console
+        sys.stderr.write(text)
+
+
+def last_errors(n=3):
+    """The last errors noted: their time, where, and what (one line each)."""
+    try:
+        with open(ERRORS, encoding="utf-8", errors="replace") as f:
+            entries = [e.strip().splitlines() for e in f.read().split("\n\n") if e.strip()]
+    except OSError:
+        return []
+    return [f"{e[0]} : {e[-1]}" for e in entries[-n:]]
+
+
 class Log:
-    """Event file kept in time order; appends when possible, rewrites otherwise."""
+    """Event file kept in time order; appends when possible, rewrites otherwise. An event that could
+    not be written stays in memory and goes with the next write."""
 
     def __init__(self, path):
-        self.path, self.events = path, []
+        self.path, self.events, self.unsaved = path, [], False
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
                 for line in f:
@@ -164,11 +220,18 @@ class Log:
         while i and self.events[i - 1]["ts"] > e["ts"]:
             i -= 1
         self.events.insert(i, e)
-        if i < len(self.events) - 1:
+        if i < len(self.events) - 1 or self.unsaved:
             self.save()
-        else:
+            return
+
+        def append():
             with open(self.path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(e) + "\n")
+        try:
+            retry(append)
+        except OSError:
+            self.unsaved = True
+            raise
 
     def remove(self, e):
         self.events = [x for x in self.events if x is not e]
@@ -182,9 +245,16 @@ class Log:
         return e
 
     def save(self):
-        with open(self.path + ".tmp", "w", encoding="utf-8") as f:
-            f.writelines(json.dumps(x) + "\n" for x in self.events)
-        os.replace(self.path + ".tmp", self.path)
+        def write():
+            with open(self.path + ".tmp", "w", encoding="utf-8") as f:
+                f.writelines(json.dumps(x) + "\n" for x in self.events)
+            os.replace(self.path + ".tmp", self.path)
+        try:
+            retry(write)
+            self.unsaved = False
+        except OSError:
+            self.unsaved = True
+            raise
 
 
 def load_json(path, default):
@@ -196,8 +266,35 @@ def load_json(path, default):
 
 
 def save_json(path, obj):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=2, ensure_ascii=False)
+    """Written beside it, then put in its place: never half a file."""
+    def write():
+        with open(path + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(obj, f, indent=2, ensure_ascii=False)
+        os.replace(path + ".tmp", path)
+    retry(write)
+
+
+def autostart():
+    """What Windows runs for the counter when the player signs in, or None."""
+    import winreg
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
+            return winreg.QueryValueEx(key, RUN_NAME)[0]
+    except OSError:
+        return None
+
+
+def set_autostart(on):
+    """Start the counter when the player signs in, waiting for Aniimo (--demarrage), or not."""
+    import winreg
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
+        if on:
+            winreg.SetValueEx(key, RUN_NAME, 0, winreg.REG_SZ, subprocess.list2cmdline(PROGRAM + ["--demarrage"]))
+        else:
+            try:
+                winreg.DeleteValue(key, RUN_NAME)
+            except FileNotFoundError:
+                pass
 
 
 def pct(x):
@@ -236,7 +333,7 @@ class Panel:
         # errors, shown under the first panel on screen
         self.status = tk.Label(self.top, bg=NIGHT, fg=WARN, font=("Segoe UI", 8), anchor="w", justify="left",
                                wraplength=round(theme.W * overlay.scale))
-        self.photo, self.shown = None, False
+        self.photo, self.image, self.shown = None, None, False
         x, y = overlay.positions[name]
         self.top.geometry(f"+{x}+{y}")
         self.top.bind("<ButtonPress-1>", lambda e: overlay.drag_start(self, e))
@@ -251,6 +348,9 @@ class Panel:
         return self.o.scale * self.o.sizes.get(self.name, 1.0)
 
     def set_image(self, image):
+        if self.image is not None and image == self.image:  # the same picture: no repaint
+            return
+        self.image = image
         self.photo = ImageTk.PhotoImage(image)  # kept: tk forgets pictures nobody holds
         self.label.config(image=self.photo)
 
@@ -308,19 +408,18 @@ class Banner:
         if not self.panel.shown:
             return
         fl = self.fl
-        ticks = [need for _, need in fl.STAGES[1:-1]]
         zone = self.data.get("last")
         r = self.data["readings"].get(zone)
         if not r:
-            image = theme.floraison_panel(None, None, None, fl.FULL, None, 0, 0, "", ticks, self.panel.scale,
+            image = theme.floraison_panel(None, None, None, fl.FULL, None, 0, 0, "", None, self.panel.scale,
                                           hint="Ouvre le menu Enrichir d'une zone")
         else:
             energy, lucky, sup = self.estimate(r)
-            stage = max(i for i, (_, need) in enumerate(fl.STAGES) if energy >= need)
+            stage, progress = fl.state_of(energy)  # the game's bar: how far into the state
             n = fl.needs(energy, self.overlay.cfg["floraison_gain"])
             since = " ".join(t for t in (f"+{lucky} Lucky" if lucky else "", f"+{sup} Super" if sup else "") if t)
             image = theme.floraison_panel(zone, fl.STAGES[stage][0], energy, fl.FULL, n["missing"], n["lucky"],
-                                          n["super"], since, ticks, self.panel.scale, blooms=n["blooms"])
+                                          n["super"], since, progress, self.panel.scale, blooms=n["blooms"])
         self.panel.set_image(image)
 
 
@@ -328,7 +427,7 @@ class MenuWindow:
     """The menu, in a small window that stays open until closed (✕, Échap, the bubble again or an
     action): Windows' right-click menus closed by themselves over the game."""
 
-    BG, FG, DIM, HOVER, LINE = "#121a30", "#edebff", "#929cc4", "#2a3760", "#2e3b61"
+    BG, FG, DIM, HOVER, LINE, GOLD = "#121a30", "#edebff", "#929cc4", "#2a3760", "#2e3b61", "#ffd166"
 
     def __init__(self, overlay):
         self.o, self.top = overlay, None
@@ -360,9 +459,12 @@ class MenuWindow:
         head = tk.Frame(body, bg=self.BG)
         head.pack(fill="x")
         tk.Label(head, text="Compteur pity", bg=self.BG, fg=self.FG, font=("Segoe UI Semibold", 11)).pack(side="left")
+        tk.Label(head, text=VERSION, bg=self.BG, fg=self.DIM, font=("Segoe UI", 9)).pack(side="left", padx=px(6))
         close = tk.Label(head, text="✕", bg=self.BG, fg=self.DIM, font=("Segoe UI", 11), cursor="hand2", padx=px(4))
         close.pack(side="right")
         close.bind("<Button-1>", lambda e: self.close())
+        if o.update:
+            self.button(body, f"✦ Installer la version {o.update['version']}…", o.show_update, color=self.GOLD)
         s = o.state
         lucky, sup = pity.odds(s)
         for line in (odds_line("Lucky", lucky), odds_line("Super Lucky", sup),
@@ -396,6 +498,8 @@ class MenuWindow:
         self.button(body, "Régler les compteurs…", o.edit)
         self.button(body, "Réglages…", o.settings)
         self.button(body, "Ouvrir le dossier", lambda: os.startfile(HERE))
+        self.button(body, "Vérifier le fonctionnement", o.self_check)
+        self.button(body, "Rechercher une mise à jour", lambda: o.check_update(manual=True))
         self.button(body, "Quitter", o.root.destroy)
         t.bind("<Escape>", lambda e: self.close())
         t.update_idletasks()
@@ -433,11 +537,11 @@ class MenuWindow:
         tk.Label(parent, text=title.upper(), bg=self.BG, fg=self.DIM, font=("Segoe UI Semibold", 8),
                  anchor="w").pack(fill="x")
 
-    def button(self, parent, text, command, hint=""):
+    def button(self, parent, text, command, hint="", color=None):
         """A line of the menu: lights up under the mouse, runs `command` and closes the menu."""
         row = tk.Frame(parent, bg=self.BG, cursor="hand2")
         row.pack(fill="x")
-        parts = [tk.Label(row, text=text, bg=self.BG, fg=self.FG, font=("Segoe UI", 10), anchor="w",
+        parts = [tk.Label(row, text=text, bg=self.BG, fg=color or self.FG, font=("Segoe UI", 10), anchor="w",
                           padx=self.o.px(6), pady=self.o.px(2))]
         parts[0].pack(side="left")
         if hint:
@@ -530,6 +634,21 @@ class Settings:
             tk.Radiobutton(server, text=label, value=code, variable=self.server,
                            command=self.set_server).pack(side="left", **pad)
 
+        start = tk.LabelFrame(d, text="Démarrage et mises à jour", padx=8, pady=4)
+        start.pack(fill="x", padx=10, pady=4)
+        self.autostart = tk.BooleanVar(value=autostart() is not None)
+        tk.Checkbutton(start, variable=self.autostart, command=self.toggle_autostart, justify="left", wraplength=420,
+                       text="Lancer le compteur avec Windows : ses panneaux apparaissent quand Aniimo "
+                            "démarre et disparaissent quand il se ferme").pack(anchor="w")
+        self.updates = tk.BooleanVar(value=bool(cfg["check_updates"]))
+        tk.Checkbutton(start, variable=self.updates, command=self.set_updates, justify="left", wraplength=420,
+                       text="Chercher les nouvelles versions au démarrage (le compteur demande à GitHub le "
+                            "numéro de la dernière version, rien d'autre n'est envoyé)").pack(anchor="w")
+        row = tk.Frame(start)
+        row.pack(anchor="w", pady=(2, 2))
+        tk.Button(row, text="Rechercher maintenant", command=lambda: overlay.check_update(manual=True)).pack(side="left")
+        tk.Label(row, text=f"Version installée : {VERSION}", fg="#555").pack(side="left", padx=8)
+
         tk.Button(d, text="Fermer", width=12, command=self.close).pack(pady=(4, 10))
         d.protocol("WM_DELETE_WINDOW", self.close)
         d.bind("<KeyPress>", self.key_pressed)
@@ -562,6 +681,19 @@ class Settings:
             return
         self.o.sizes[name] = percent / 100
         self.o.resized()
+
+    def toggle_autostart(self):
+        try:
+            set_autostart(self.autostart.get())
+        except OSError as e:
+            self.autostart.set(autostart() is not None)
+            self.note.config(text=f"Windows refuse le lancement automatique : {e}")
+
+    def set_updates(self):
+        self.o.cfg["check_updates"] = self.updates.get()
+        self.save()
+        if self.updates.get():
+            self.o.check_update()
 
     def set_server(self):
         self.o.cfg["server"] = self.server.get()
@@ -659,6 +791,14 @@ class Overlay:
             {k: locked for k in ("lucky", "super", "floraison", "icone")}
         self.links = set(saved.get("links", []))
         self.hotkeys = None      # Hotkeys, restarted by the settings when a key changes
+        self.show_event = None   # set by a second start of the counter: show it (see main)
+        self.update = None       # a newer version, found on GitHub
+        self.update_window = None
+        self.notice = ""         # a short message under the first panel, in blue
+        self.affinity = {}       # capture setting last given to each window
+        # started with Windows (--demarrage): the panels wait for Aniimo, and go when it closes
+        self.follow_game, self.game_running = "--demarrage" in sys.argv, False
+        root.report_callback_exception = lambda *exc: log_error("tk", exc)
         self.menu_window = MenuWindow(self)
         self.panels = {kind: Panel(self, kind, self.popup) for kind in ("lucky", "super")}
         self.banner = Banner(self, scale) if cfg["floraison"] else None
@@ -668,6 +808,11 @@ class Overlay:
         self.tick()
         self.poll()
         self.keep_on_top()
+        if self.follow_game:
+            self.watch_game()
+        if cfg["check_updates"] is None and not self.follow_game:
+            root.after(1500, self.ask_updates)
+        root.after(5000, self.auto_check)
 
     def popup(self, e):
         """Right click on a panel, or a click on the bubble: the menu, which stays open."""
@@ -783,17 +928,19 @@ class Overlay:
         return (best_x if abs(best_x - x) <= reach else x), (best_y if abs(best_y - y) <= reach else y)
 
     def layout(self):
-        """Show the panels the settings ask for; errors go under the first one shown."""
+        """Show the panels the settings ask for (none while waiting for the game); errors, or else
+        a notice, go under the first one shown."""
+        hidden = self.follow_game and not self.game_running
         for kind, panel in self.panels.items():
-            panel.show(self.cfg[f"show_{kind}"])
+            panel.show(self.cfg[f"show_{kind}"] and not hidden)
         if self.banner:
-            self.banner.panel.show(self.cfg["show_floraison"])
-        self.icon.show(self.cfg["show_icon"])
+            self.banner.panel.show(self.cfg["show_floraison"] and not hidden)
+        self.icon.show(self.cfg["show_icon"] and not hidden)
         shown = [p for p in self.all_panels() if p.shown]
         for panel in self.all_panels():
             panel.status.pack_forget()
-        if self.errors and shown:
-            shown[0].status.config(text=" · ".join(self.errors))
+        if (self.errors or self.notice) and shown:
+            shown[0].status.config(text=" · ".join(self.errors) or self.notice, fg=WARN if self.errors else NOTE)
             shown[0].status.pack(fill="x", padx=8, pady=(2, 0))
         if self.banner:
             self.banner.redraw()
@@ -806,7 +953,7 @@ class Overlay:
         self.redraw()
 
     def redraw(self):
-        self.icon.set_image(theme.bubble(ICON, self.icon.scale))
+        self.icon.set_image(theme.bubble(ICON, self.icon.scale, badge=bool(self.update)))
         for kind, o in zip(("lucky", "super"), pity.odds(self.state)):
             image = theme.pity_panel(kind, o.pity, o.cap, o.done, o.left, self.state.catches_week,
                                      self.panels[kind].scale, self.highlight.get(kind))
@@ -815,7 +962,13 @@ class Overlay:
             self.banner.redraw()  # Lucky counted since the last reading change its estimate
 
     def add(self, e):
-        self.log.add(e)
+        try:
+            self.log.add(e)
+            if any(x.startswith("Enregistrement") for x in self.errors):
+                self.clear_errors("Enregistrement")
+        except OSError as err:  # kept in memory: written with the next one
+            log_error("enregistrement")
+            self.show_error(f"Enregistrement impossible ({err.strerror or err}), nouvel essai à la prochaine capture")
         self.history.append(lambda: self.log.remove(e))
 
     def take_token(self, use):
@@ -885,29 +1038,145 @@ class Overlay:
         self.redraw()
 
     def tick(self):
-        if pity.week_start(time.time(), self.cfg["server"]) != self.state.week:
-            self.rebuild()
-        self.root.after(5000, self.tick)
+        try:
+            if pity.week_start(time.time(), self.cfg["server"]) != self.state.week:
+                self.rebuild()
+        finally:
+            self.root.after(5000, self.tick)
 
     def poll(self):
+        """Messages from the hotkeys, the screen and the sound. One that goes wrong is noted in
+        data\\erreurs.txt and shown, and the counting goes on: an error here used to stop it."""
         try:
             while True:
                 msg = self.inbox.get_nowait()
-                if msg[0] == "do":
-                    self.do(msg[1])
-                elif msg[0] == "heard":
-                    self.heard(SOUND_KIND[msg[1]], msg[2])
-                elif msg[0] == "cards":  # capture cards or a Culbuton notification seen on screen
-                    for _ in range(msg[2]):
-                        self.heard("catch", msg[1])
-                elif msg[0] == "floraison":  # the Enrichir menu was read
-                    if self.banner:
-                        self.banner.on_reading(msg[1])
-                else:
-                    self.show_error(msg[1])
+                try:
+                    self.handle(msg)
+                except Exception as e:
+                    log_error(f"message {msg[0]}")
+                    try:
+                        self.show_error(f"Erreur : {e} (détails dans data\\erreurs.txt)")
+                    except Exception:
+                        pass
         except queue.Empty:
             pass
-        self.root.after(50, self.poll)
+        finally:
+            if self.show_event and kernel32.WaitForSingleObject(self.show_event, 0) == 0:  # WAIT_OBJECT_0
+                self.show_again()
+            self.root.after(50, self.poll)
+
+    def handle(self, msg):
+        if msg[0] == "do":
+            self.do(msg[1])
+        elif msg[0] == "heard":
+            self.heard(SOUND_KIND[msg[1]], msg[2])
+        elif msg[0] == "cards":  # capture cards or a Culbuton notification seen on screen
+            for _ in range(msg[2]):
+                self.heard("catch", msg[1])
+        elif msg[0] == "floraison":  # the Enrichir menu was read
+            if self.banner:
+                self.banner.on_reading(msg[1])
+        elif msg[0] == "update":  # GitHub answered (check_update)
+            self.on_update(*msg[1:])
+        else:
+            self.show_error(msg[1])
+
+    def show_notice(self, text, seconds=20):
+        self.notice = text
+        self.layout()
+        self.root.after(seconds * 1000, lambda: (setattr(self, "notice", ""), self.layout()))
+
+    def show_again(self):
+        """The counter was started again while it runs: it stops waiting for the game and opens its menu."""
+        self.follow_game = False
+        self.layout()
+        x, y = self.positions["icone" if self.cfg["show_icon"] else "lucky"]
+        self.menu_window.open(x, y)
+
+    def watch_game(self):
+        """Started with Windows: the panels show while Aniimo runs."""
+        try:
+            import game_audio
+            running = game_audio.game_pid() is not None
+            if running != self.game_running:
+                self.game_running = running
+                self.layout()
+        finally:
+            if self.follow_game:
+                self.root.after(3000, self.watch_game)
+
+    def self_check(self):
+        """Menu > Vérifier le fonctionnement: the self-test in a process of its own; its report
+        opens in a message box and goes to test.txt."""
+        updater.start(PROGRAM + ["--test"], HERE)
+
+    def ask_updates(self):
+        """First start: may the counter look for new versions on GitHub? Closed unanswered: asked next time."""
+        d = self.update_window = tk.Toplevel(self.root)
+        d.title("Mises à jour du compteur")
+        d.attributes("-topmost", True)
+        d.resizable(False, False)
+        tk.Label(d, justify="left", wraplength=440, text=(
+            "Le compteur peut regarder sur GitHub, à chaque démarrage, s'il existe une nouvelle version. "
+            "Il demande seulement le numéro de la dernière version : rien sur vous ni sur vos captures "
+            "n'est envoyé. S'il y en a une, la bulle porte un point doré et le menu propose de l'installer "
+            "en un clic, en gardant vos compteurs et vos réglages.\n\n"
+            "Vous pourrez changer d'avis dans les réglages.")).pack(padx=14, pady=(14, 8))
+
+        def answer(yes):
+            self.cfg["check_updates"] = yes
+            save_json(CONFIG, self.cfg)
+            d.destroy()
+            if yes:
+                self.check_update()
+        row = tk.Frame(d)
+        row.pack(pady=(0, 12))
+        tk.Button(row, text="Oui, chercher les mises à jour", command=lambda: answer(True)).pack(side="left", padx=4)
+        tk.Button(row, text="Non merci", command=lambda: answer(False)).pack(side="left", padx=4)
+        center(d)
+
+    def auto_check(self):
+        """Look for a new version at start, then twice a day, if the player said yes."""
+        if self.cfg["check_updates"]:
+            self.check_update()
+        self.root.after(12 * 3600 * 1000, self.auto_check)
+
+    def check_update(self, manual=False):
+        """Ask GitHub, in a thread, for a version newer than this one; the answer comes through the inbox."""
+        def run():
+            try:
+                self.inbox.put(("update", updater.latest(VERSION), manual, None))
+            except Exception as e:
+                self.inbox.put(("update", None, manual, str(e)))
+        threading.Thread(target=run, daemon=True).start()
+
+    def on_update(self, info, manual, error):
+        if info:
+            self.update = info
+            self.redraw()  # the bubble's gold dot
+            if manual:
+                self.show_update()
+        elif manual:
+            self.tell("Mises à jour du compteur",
+                      f"Impossible de joindre GitHub : {error}" if error else
+                      f"Vous avez la dernière version ({VERSION}).")
+
+    def show_update(self):
+        UpdateWindow(self, self.update)
+
+    def tell(self, title, text):
+        """A small message that does not block the counting (a message box would)."""
+        if self.update_window is not None and self.update_window.winfo_exists():
+            self.update_window.destroy()
+        d = self.update_window = tk.Toplevel(self.root)
+        d.title(title)
+        d.attributes("-topmost", True)
+        d.resizable(False, False)
+        tk.Label(d, text=text, justify="left", wraplength=420).pack(padx=14, pady=(14, 8))
+        tk.Button(d, text="OK", width=10, command=d.destroy).pack(pady=(0, 12))
+        d.bind("<Return>", lambda e: d.destroy())
+        d.bind("<Escape>", lambda e: d.destroy())
+        center(d)
 
     def show_error(self, text):
         if text not in self.errors:
@@ -919,10 +1188,17 @@ class Overlay:
         self.layout()
 
     def keep_on_top(self):
+        try:
+            self.on_top()
+        finally:
+            self.root.after(2000, self.keep_on_top)
+
+    def on_top(self):
         zones = [z for w in self.watchers for z in w.zones]
         # the menu and the dialogs last: each call puts its window above the ones before, and
         # putting the panels back on top every 2 s used to hide the right-click menu
-        extra = [self.menu_window.top, getattr(self, "settings_window", None), getattr(self, "edit_window", None)]
+        extra = [self.menu_window.top, getattr(self, "settings_window", None), getattr(self, "edit_window", None),
+                 self.update_window]
         for window in [p.top for p in self.all_panels() if p.shown] + [w for w in extra if w is not None]:
             if not window.winfo_exists() or not window.winfo_viewable():
                 continue
@@ -931,12 +1207,15 @@ class Overlay:
             user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x13)  # HWND_TOPMOST, NOSIZE|NOMOVE|NOACTIVATE
             # over a part of the screen the watchers read, the window would hide it from their
             # screen copies: then it leaves screen captures (also Discord, recordings,
-            # screenshots); elsewhere it shows in them. Windows 10 2004+
+            # screenshots); elsewhere it shows in them. Windows 10 2004+. Given only when it
+            # changes: given again and again, it can make the window flicker
             r = wintypes.RECT()
             user32.GetWindowRect(hwnd, ctypes.byref(r))
             over = any(r.left < z[2] and z[0] < r.right and r.top < z[3] and z[1] < r.bottom for z in zones)
-            user32.SetWindowDisplayAffinity(hwnd, 0x11 if over else 0)  # WDA_EXCLUDEFROMCAPTURE / WDA_NONE
-        self.root.after(2000, self.keep_on_top)
+            want = 0x11 if over else 0  # WDA_EXCLUDEFROMCAPTURE / WDA_NONE
+            if self.affinity.get(hwnd) != want:
+                user32.SetWindowDisplayAffinity(hwnd, want)
+                self.affinity[hwnd] = want
 
     def edit(self):
         """Dialog to set the counters, e.g. when starting mid-week."""
@@ -979,8 +1258,96 @@ class Overlay:
         d.focus_force()
 
 
+class UpdateWindow:
+    """A new version: what it brings, and the button that installs it (download, check, swap, restart)."""
+
+    def __init__(self, overlay, info):
+        o, self.info = overlay, info
+        self.o, self.progress, self.result = o, None, None
+        if o.update_window is not None and o.update_window.winfo_exists():
+            o.update_window.destroy()
+        d = self.d = o.update_window = tk.Toplevel(o.root)
+        d.title("Mise à jour du compteur")
+        d.attributes("-topmost", True)
+        d.resizable(False, False)
+        tk.Label(d, text=f"Version {info['version']} disponible (vous avez la {VERSION})",
+                 font=("Segoe UI Semibold", 11)).pack(anchor="w", padx=12, pady=(12, 4))
+        notes = tk.Text(d, width=70, height=14, wrap="word", font=("Segoe UI", 9), relief="flat", bg=d.cget("bg"))
+        notes.insert("1.0", info["notes"].replace("**", "").strip() or "Pas de notes pour cette version.")
+        notes.config(state="disabled")
+        notes.pack(padx=12, pady=4)
+        tk.Label(d, text="Vos compteurs, vos réglages et la place des panneaux sont gardés.",
+                 fg="#555").pack(anchor="w", padx=12)
+        self.status = tk.Label(d, text="", anchor="w", justify="left", wraplength=480)
+        self.status.pack(fill="x", padx=12, pady=(4, 0))
+        row = tk.Frame(d)
+        row.pack(pady=10)
+        self.button = None
+        if getattr(sys, "frozen", False) and info["url"]:
+            self.button = tk.Button(row, text="Installer et redémarrer", width=22, command=self.install)
+            self.button.pack(side="left", padx=4)
+        else:  # from the sources: git pull
+            self.status.config(text="Lancé depuis les sources : mettez-les à jour avec git pull.")
+        tk.Button(row, text="Voir sur GitHub", width=16, command=lambda: os.startfile(info["page"])).pack(side="left",
+                                                                                                         padx=4)
+        self.later = tk.Button(row, text="Plus tard", width=12, command=d.destroy)
+        self.later.pack(side="left", padx=4)
+        d.bind("<Escape>", lambda e: self.later["state"] == "normal" and d.destroy())
+        center(d)
+
+    def install(self):
+        self.button.config(state="disabled")
+        self.later.config(state="disabled")
+        self.d.protocol("WM_DELETE_WINDOW", lambda: None)  # not closed halfway
+        self.result = None
+
+        def run():
+            try:
+                path = updater.download(self.info, HERE, VERSION, lambda done, total: setattr(self, "progress",
+                                                                                              (done, total)))
+                self.progress = "install"
+                updater.install(path, sys.executable)
+                self.result = "ok"
+            except Exception as e:
+                log_error("mise à jour")
+                self.result = f"La mise à jour n'a pas pu se faire : {e}"
+        threading.Thread(target=run, daemon=True).start()
+        self.follow()
+
+    def follow(self):
+        """Progress; once installed, the new version is started and this one quits."""
+        if self.result == "ok":
+            self.status.config(text="Installée. Redémarrage…")
+            if self.o.hotkeys:
+                self.o.hotkeys.stop()  # its keys free for the new version
+            updater.start(PROGRAM + ["--apres-maj"] + (["--demarrage"] if self.o.follow_game else []), HERE)
+            self.o.root.after(300, self.o.root.destroy)
+            return
+        if self.result:
+            self.status.config(text=self.result + " Vous pouvez aussi la télécharger sur GitHub.", fg=WARN)
+            self.button.config(state="normal")
+            self.later.config(state="normal")
+            self.d.protocol("WM_DELETE_WINDOW", self.d.destroy)
+            return
+        if self.progress == "install":
+            self.status.config(text="Vérification et installation…")
+        elif self.progress:
+            done, total = self.progress
+            self.status.config(text=f"Téléchargement… {done * 100 // total} %" if total else
+                               f"Téléchargement… {done // 1_000_000} Mo")
+        else:
+            self.status.config(text="Téléchargement…")
+        self.d.after(200, self.follow)
+
+
+def center(window):
+    window.update_idletasks()
+    w, h = window.winfo_reqwidth(), window.winfo_reqheight()
+    window.geometry(f"+{(window.winfo_screenwidth() - w) // 2}+{(window.winfo_screenheight() - h) // 3}")
+
+
 def message(text, title="Compteur pity Aniimo"):
-    user32.MessageBoxW(None, text, title, 0x40)  # MB_ICONINFORMATION
+    user32.MessageBoxW(None, text, title, 0x40 | 0x40000)  # MB_ICONINFORMATION | MB_TOPMOST
 
 
 def self_test():
@@ -996,6 +1363,7 @@ def self_test():
     import cv2, cards, detect, game_audio
     import numpy as np
 
+    lines.append(f"OK   version : {VERSION} ({'exe' if getattr(sys, 'frozen', False) else 'sources'})")
     def window():
         w = tk.Tk()
         w.withdraw()
@@ -1032,6 +1400,8 @@ def self_test():
         where = cards.game_client(pid)
         lines.append(f"{'OK  ' if where else 'INFO'} écran : " + (f"jeu au premier plan, image {where[2]}x{where[3]}" if where
                      else "le jeu n'est pas la fenêtre active (normal pendant ce test)"))
+    errors = last_errors()
+    lines.append("INFO dernières erreurs notées : " + ("aucune" if not errors else "\n     " + "\n     ".join(errors)))
     report = "\n".join(lines)
     with open(os.path.join(HERE, "test.txt"), "w", encoding="utf-8") as f:
         f.write(report + "\n")
@@ -1043,16 +1413,37 @@ def main():
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
     if "--test" in sys.argv:
         return self_test()
-    kernel32 = ctypes.windll.kernel32
-    kernel32.CreateMutexW(None, False, "AniimoPityOverlay")
-    if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
-        message("Le compteur tourne déjà.")
-        sys.exit(1)
+    # one counter at a time; after an update, the new version waits for the old one to quit
+    for _ in range(80 if "--apres-maj" in sys.argv else 1):
+        mutex = kernel32.CreateMutexW(None, False, MUTEX)
+        if kernel32.GetLastError() != 183:  # ERROR_ALREADY_EXISTS
+            break
+        kernel32.CloseHandle(mutex)
+        time.sleep(0.25)
+    else:
+        # started again: the running counter shows itself and opens its menu
+        show = kernel32.OpenEventW(0x0002, False, SHOW_EVENT)  # EVENT_MODIFY_STATE
+        if show:
+            if "--demarrage" not in sys.argv:
+                kernel32.SetEvent(show)
+            kernel32.CloseHandle(show)
+        else:
+            message("Le compteur tourne déjà.")
+        sys.exit(0)
+    show_event = kernel32.CreateEventW(None, False, False, SHOW_EVENT)
+    if getattr(sys, "frozen", False):  # what an update left: the old exe, once it has quit
+        threading.Thread(target=updater.cleanup, args=(sys.executable,), daemon=True).start()
     os.makedirs(DATA, exist_ok=True)
     cfg = {**DEFAULT_CONFIG, **load_json(CONFIG, {})}
     cfg["hotkeys"] = {**DEFAULT_CONFIG["hotkeys"], **cfg["hotkeys"]}
     if not os.path.exists(CONFIG):
         save_json(CONFIG, cfg)
+    command = autostart()
+    if command and command != subprocess.list2cmdline(PROGRAM + ["--demarrage"]):
+        try:
+            set_autostart(True)  # the folder moved: Windows starts the counter from its new place
+        except OSError:
+            pass
     inbox = queue.Queue()
     hotkeys = Hotkeys(inbox)
     hotkeys.start(cfg["hotkeys"])
@@ -1077,7 +1468,9 @@ def main():
     except tk.TclError:
         pass
     overlay = Overlay(root, cfg, Log(EVENTS), inbox)
-    overlay.watchers, overlay.hotkeys = watchers, hotkeys
+    overlay.watchers, overlay.hotkeys, overlay.show_event = watchers, hotkeys, show_event
+    if "--apres-maj" in sys.argv:
+        overlay.show_notice(f"Compteur mis à jour : version {VERSION}")
     root.mainloop()
 
 

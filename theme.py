@@ -310,11 +310,16 @@ def pity_panel(kind, pity, cap, done, left, catches, scale=1.0, number_color=Non
     return pt.done(scale, alpha)
 
 
-def floraison_panel(zone, stage, energy, full, missing, lucky, super_, approx, thresholds, scale=1.0, hint=None,
+def floraison_panel(zone, stage, energy, full, missing, lucky, super_, approx, progress, scale=1.0, hint=None,
                     alpha=False, blooms=None):
-    """Bloom panel: energy of the area / full, bar with a tick per state, what is missing."""
+    """Bloom panel: energy of the area / full, the bar of its state, what is missing.
+
+    `progress` is the share of the area's state already filled: the bar the game shows in its
+    Enrichir menu ("Abondant", 82 %), None when no area was read."""
     accent = ACCENT["floraison"]
     pt = Painter(W, H, scale, base("floraison", scale))
+    if stage and progress is not None and energy is not None and energy < full:
+        stage = f"{stage} {share_text(progress)[1:-1]}"
     sub = hint or " · ".join(s for s in (zone, stage, approx) if s)
     pt.text(83, 46, sub.upper(), pt.fit(sub.upper(), 8, "semibold", 220, 1.0), DIM, "semibold", spacing=1.0)
     left = 82 + pt.measure(TITLE["floraison"], 21, "bold") + 10
@@ -322,7 +327,7 @@ def floraison_panel(zone, stage, energy, full, missing, lucky, super_, approx, t
         numbers(pt, 306, 31, "—", group(full), DIM, left=left)
     else:
         numbers(pt, 306, 31, ("≈ " if approx else "") + group(energy), group(full), accent, left=left)
-    bar(pt, "floraison", 82, 306, 55, 65, (energy or 0) / full, [t / full for t in thresholds])
+    bar(pt, "floraison", 82, 306, 55, 65, progress or 0)
     if energy is not None and missing == 0:
         pt.text(403, 38, "PLEIN", 19, GREEN, "black", "ms")
         pt.text(403, 55, "Prismana garanti", 10, WHITE, "semibold", "ms")
@@ -343,8 +348,9 @@ def floraison_panel(zone, stage, energy, full, missing, lucky, super_, approx, t
 
 
 @functools.lru_cache(None)
-def bubble(path, scale, size=46):
-    """The floating bubble: the round logo with a thin ring, on KEY (RGB, for a tk image)."""
+def bubble(path, scale, size=46, badge=False):
+    """The floating bubble: the round logo with a thin ring, on KEY (RGB, for a tk image).
+    `badge`: a gold dot on the ring, when a new version can be installed."""
     n = int(round(size * scale))
     big = n * 4
     try:
@@ -363,6 +369,10 @@ def bubble(path, scale, size=46):
     d.ellipse([2, 2, big - 3, big - 3], outline=LINE + (255,), width=max(big // 22, 2))
     d.ellipse([big // 22 + 2, big // 22 + 2, big - big // 22 - 3, big - big // 22 - 3],
               outline=CYAN + (170,), width=max(big // 60, 1))
+    if badge:
+        r = big * 0.14
+        d.ellipse([big - 2 * r - 2, 2, big - 2, 2 * r + 2], fill=GOLD + (255,), outline=NIGHT + (255,),
+                  width=max(big // 40, 2))
     small = out.resize((n, n), Image.LANCZOS)
     rgb = Image.new("RGB", (n, n), KEY)
     rgb.paste(small, (0, 0), small)

@@ -1,9 +1,10 @@
 # personal: counters, readings, recordings, window positions, settings, notes
 data/
 config.json
+*.tmp
 test.txt
 NOTES-perso.md
-# the game's own sounds, extracted from your install by « Préparer les sons.bat »
+# the game's own sounds, extracted from your install by tools/extract_sounds.py
 # (only their fingerprints, sons/empreintes.npz, are published)
 sons/*.wav
 sons/candidats/
@@ -15,3 +16,5 @@ distribution/*.exe
 build/
 __pycache__/
 *.pyc
+# local Windows shortcuts (the counter does all this itself, or tools/*.py)
+*.bat

@@ -54,6 +54,15 @@ def energy_of(stage, fill):
     return round(low + min(max(fill, 0.0), 1.0) * (high - low))
 
 
+def state_of(energy):
+    """(index in STAGES, share of that state filled): what the game's bar shows for an energy."""
+    stage = max(i for i, (_, need) in enumerate(STAGES) if energy >= need)
+    if stage >= len(STAGES) - 1:
+        return stage, 1.0
+    low, high = STAGES[stage][1], STAGES[stage + 1][1]
+    return stage, (energy - low) / (high - low)
+
+
 def needs(energy, bloom_gain=BLOOM_GAIN):
     """Points missing to Full, and the Lucky (average, best, worst), Super Lucky or Floraisons that makes."""
     missing = max(FULL - energy, 0)
@@ -74,6 +83,23 @@ def closest(text, choices, cutoff=0.6):
     words = [plain(c) for c in choices]
     best = difflib.get_close_matches(plain(text).strip(" .!|:"), words, n=1, cutoff=cutoff)
     return choices[words.index(best[0])] if best else None
+
+
+NOT_ZONES = ("augmenter", "zone inconnue")  # also on the pills: the "Augmenter" tag, locked areas
+
+
+def zone_name(text):
+    """The area named on the chosen pill, from what the text recognition read there (lines joined
+    by ' | ', a long name takes two): the closest known area, else the text itself if it looks like
+    a name (an area added by an update of the game), else None."""
+    lines = [line.strip(" .!:-") for line in text.split("|")]
+    lines = [line for line in lines if line and plain(line) not in NOT_ZONES]
+    for candidate in [" ".join(lines)] + lines:
+        zone = closest(candidate, ZONES, 0.65)  # misread names score 0.86 and more, unknown ones ~0.5
+        if zone:
+            return zone
+    name = " ".join("".join(c for c in " ".join(lines) if c.isalpha() or c in " '-’").split())
+    return name[:40] if sum(c.isalpha() for c in name) >= 4 and "inconnue" not in plain(name) else None
 
 
 OCR_SCRIPT = r"""
@@ -190,12 +216,48 @@ def signature(img):
     return cv2.resize(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), (48, 12), interpolation=cv2.INTER_AREA).astype(np.int16)
 
 
-class Watcher(threading.Thread):
-    """Looks for the Enrichir menu twice a second while the game is in front.
+class Steady:
+    """Readings of the open menu, kept until they hold still, then given again only when they
+    really change. The bar moves when the menu opens or another area is chosen, and its glow can
+    shift its end by a few pixels; the smallest real change is a Lucky, 275 points, 6 % of the
+    widest state."""
 
-    Posts ("floraison", {"zone", "stage", "fill", "energy", "ts"}) to `out` when what it shows
-    changes. `zones` holds the screen rectangles read while the menu is open (see cards.Watcher):
-    the rest of the time nothing is read but the title's band.
+    LOOKS = 5       # looks kept
+    STEADY = 4      # of them within NOISE of their middle value: the bar holds still
+    NOISE = 0.01    # share of the bar, about 3 pixels
+    CHANGE = 0.015  # less than this from the last one given, same area and state: the same reading
+
+    def __init__(self):
+        self.recent, self.given = [], {}  # (zone, stage, fill) of the last looks; {zone: (stage, fill)}
+
+    def reset(self, closed=False):
+        """A look that could not be read; `closed`: the menu is gone, its next reading counts as new."""
+        self.recent = []
+        if closed:
+            self.given = {}
+
+    def add(self, zone, stage, fill):
+        """The fill to give for this area and state, or None while it moves or did not change."""
+        if self.recent and self.recent[-1][:2] != (zone, stage):
+            self.recent = []
+        self.recent = (self.recent + [(zone, stage, fill)])[-self.LOOKS:]
+        fills = sorted(f for _, _, f in self.recent)
+        middle = fills[len(fills) // 2]
+        if sum(abs(f - middle) <= self.NOISE for f in fills) < self.STEADY:
+            return None
+        old = self.given.get(zone)
+        if old and old[0] == stage and abs(old[1] - middle) < self.CHANGE:
+            return None
+        self.given[zone] = (stage, middle)
+        return middle
+
+
+class Watcher(threading.Thread):
+    """Looks for the Enrichir menu twice a second while the game is in front, 4 times while it is open.
+
+    Posts ("floraison", {"zone", "stage", "fill", "energy", "ts"}) to `out` once a reading holds
+    still, then when it changes (Steady). `zones` holds the screen rectangles read while the menu
+    is open (see cards.Watcher): the rest of the time nothing is read but the title's band.
     """
 
     def __init__(self, out, game_pid):
@@ -220,10 +282,10 @@ class Watcher(threading.Thread):
         reader, ocr = Reader(title), None
         screens, client, pid, pid_checked = None, None, None, 0.0
         seen = {"stage": (None, None), "zone": (None, None)}  # signature and what was read
-        last = None
+        steady = Steady()
         while True:
             try:
-                time.sleep(0.5)
+                time.sleep(0.25 if steady.recent else 0.5)
                 if time.time() - pid_checked > 5:
                     pid, pid_checked = self.game_pid(), time.time()
                 where = cards.game_client(pid) if pid else None
@@ -238,6 +300,7 @@ class Watcher(threading.Thread):
                 band = cards.Watcher.look(screens[0], TITLE_AREA)
                 corner = reader.find(band)
                 if corner is None:
+                    steady.reset(closed=True)
                     continue
                 self.seen_menu = time.time()
                 ocr = ocr or Ocr()
@@ -245,16 +308,15 @@ class Watcher(threading.Thread):
                 stage = self.read(ocr, seen, "stage", reader.stage_crop(band, corner),
                                   lambda t: closest(t.split("|")[0], [s for s, _ in STAGES]))
                 crop = reader.zone_crop(cards.Watcher.look(screens[1], LISTS))
-                zone = self.read(ocr, seen, "zone", crop, lambda t: closest(t, ZONES, 0.5)) if crop is not None else None
-                if stage is None:
+                zone = self.read(ocr, seen, "zone", crop, zone_name) if crop is not None else None
+                if stage is None or zone is None:  # not read this time: look again
+                    steady.reset()
                     continue
                 index = [s for s, _ in STAGES].index(stage)
-                reading = {"zone": zone, "stage": index, "fill": round(fill, 3),
-                           "energy": energy_of(index, fill), "ts": round(time.time(), 1)}
-                key = (zone, index, reading["energy"])
-                if key != last:
-                    last = key
-                    self.out.put(("floraison", reading))
+                fill = steady.add(zone, index, fill)
+                if fill is not None:
+                    self.out.put(("floraison", {"zone": zone, "stage": index, "fill": round(fill, 3),
+                                                "energy": energy_of(index, fill), "ts": round(time.time(), 1)}))
             except Exception as e:
                 self.out.put(("err", f"floraison : {e}"))
                 if ocr:
