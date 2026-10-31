@@ -25,9 +25,10 @@ WINDOW = os.path.join(DATA, "window.json")
 BANNER = os.path.join(DATA, "window_floraison.json")
 READINGS = os.path.join(DATA, "floraison.json")
 CONFIG = os.path.join(HERE, "config.json")
-DEFAULT_CONFIG = {"server": "EU", "reset_pity_weekly": True, "opacity": 0.9, "show_lucky": True, "show_super": True,
+DEFAULT_CONFIG = {"server": "EU", "reset_pity_weekly": True, "opacity": 0.9,
+                  "show_lucky": True, "show_super": True, "show_floraison": True,
                   "sound_detection": True, "sound_catch": False, "screen_cards": True, "floraison": True,
-                  "sound_threshold": 0.6,
+                  "sound_threshold": 0.6, "floraison_gain": 480,
                   "hotkeys": {"catch": "F7", "lucky": "F8", "super": "F9", "undo": "F6"}}
 
 NIGHT, WARN = "#0b1020", "#ff6b6b"
@@ -217,21 +218,52 @@ def odds_line(name, o):
             f"{o.had_it * 100:.0f} % l'auraient déjà eu")
 
 
-class Bar:
-    """A Lucky or Super Lucky panel: a picture drawn by theme.py."""
+class Panel:
+    """One panel in its own borderless always-on-top window: dragged on its own, or all panels
+    together with Shift; it snaps to the other panels and to the screen edges (Overlay.snap)."""
 
-    def __init__(self, parent, kind, px, scale):
-        self.kind, self.px, self.scale = kind, px, scale
-        self.c = tk.Label(parent, bd=0, highlightthickness=0, bg=theme.KEY_HEX)
-        self.photo = None
+    def __init__(self, overlay, name, menu):
+        self.o, self.name = overlay, name
+        self.top = tk.Toplevel(overlay.root)
+        self.top.withdraw()
+        self.top.overrideredirect(True)
+        self.top.attributes("-topmost", True)
+        self.top.attributes("-alpha", overlay.cfg["opacity"])
+        self.top.configure(bg=theme.KEY_HEX)
+        self.top.attributes("-transparentcolor", theme.KEY_HEX)  # only the rounded panel shows
+        self.label = tk.Label(self.top, bd=0, highlightthickness=0, bg=theme.KEY_HEX)
+        self.label.pack()
+        # errors, shown under the first panel on screen
+        self.status = tk.Label(self.top, bg=NIGHT, fg=WARN, font=("Segoe UI", 8), anchor="w", justify="left",
+                               wraplength=round(theme.W * overlay.scale))
+        self.photo, self.shown = None, False
+        x, y = overlay.positions[name]
+        self.top.geometry(f"+{x}+{y}")
+        self.top.bind("<ButtonPress-1>", lambda e: overlay.drag_start(self, e))
+        self.top.bind("<B1-Motion>", overlay.drag_move)
+        self.top.bind("<ButtonRelease-1>", lambda e: overlay.drag_end())
+        self.top.bind("<Button-3>", menu)
+        self.top.bind("<MouseWheel>", lambda e: overlay.resize(self, e))
 
-    def pack(self):
-        self.c.pack(pady=(0, self.px(6)))
+    @property
+    def scale(self):
+        """Screen scale times the size the player chose for this panel."""
+        return self.o.scale * self.o.sizes.get(self.name, 1.0)
 
-    def show(self, o, catches, number_color=None):
-        image = theme.pity_panel(self.kind, o.pity, o.cap, o.done, o.left, catches, self.scale, number_color)
+    def set_image(self, image):
         self.photo = ImageTk.PhotoImage(image)  # kept: tk forgets pictures nobody holds
-        self.c.config(image=self.photo)
+        self.label.config(image=self.photo)
+
+    def show(self, visible):
+        self.shown = visible
+        if visible:
+            self.top.deiconify()
+        else:
+            self.top.withdraw()
+
+    def size(self):
+        self.top.update_idletasks()
+        return self.top.winfo_reqwidth(), self.top.winfo_reqheight()
 
 
 def number(n):
@@ -243,66 +275,27 @@ class Banner:
     missing to Full, and how many Lucky / Super Lucky that makes. Lucky and Super Lucky counted
     since that reading are added as an estimate (≈) until the menu is read again."""
 
-    def __init__(self, overlay, px, scale):
+    def __init__(self, overlay, scale):
         import floraison
-        self.fl, self.overlay, self.px, self.scale = floraison, overlay, px, scale
-        self.win = load_json(BANNER, {"x": None, "y": 8, "locked": False, "shown": True})
+        self.fl, self.overlay, self.scale = floraison, overlay, scale
         self.data = load_json(READINGS, {"readings": {}, "last": None})
-        self.top = tk.Toplevel(overlay.root)
-        self.top.overrideredirect(True)
-        self.top.attributes("-topmost", True)
-        self.top.attributes("-alpha", overlay.cfg["opacity"])
-        self.top.configure(bg=theme.KEY_HEX)
-        self.top.attributes("-transparentcolor", theme.KEY_HEX)  # rounded corners
-        self.label = tk.Label(self.top, bd=0, highlightthickness=0, bg=theme.KEY_HEX)
-        self.label.pack()
-        self.photo = None
-        width = round(theme.W * scale)
-        x = self.win["x"] if self.win["x"] is not None else (self.top.winfo_screenwidth() - width) // 2
-        self.top.geometry(f"+{x}+{self.win['y']}")
-        self.locked = tk.BooleanVar(value=self.win["locked"])
-        self.shown = tk.BooleanVar(value=self.win["shown"])
-        self.drag = None
-        self.top.bind("<ButtonPress-1>", self.drag_start)
-        self.top.bind("<B1-Motion>", self.drag_move)
-        self.top.bind("<ButtonRelease-1>", lambda e: self.save_window())
-        self.top.bind("<Button-3>", self.popup)
-        self.menu = tk.Menu(self.top, tearoff=0)
-        self.set_shown(save=False)
-
-    def drag_start(self, e):
-        self.drag = None if self.locked.get() else (e.x_root - self.top.winfo_x(), e.y_root - self.top.winfo_y())
-
-    def drag_move(self, e):
-        if self.drag:
-            self.top.geometry(f"+{e.x_root - self.drag[0]}+{e.y_root - self.drag[1]}")
-
-    def save_window(self):
-        self.win.update(x=self.top.winfo_x(), y=self.top.winfo_y(), locked=self.locked.get(), shown=self.shown.get())
-        save_json(BANNER, self.win)
-
-    def set_shown(self, save=True):
-        if self.shown.get():
-            self.top.deiconify()
-            self.redraw()
-        else:
-            self.top.withdraw()
-        if save:
-            self.save_window()
-
+        self.menu = tk.Menu(overlay.root, tearoff=0)
+        self.panel = Panel(overlay, "floraison", self.popup)
     def popup(self, e):
         m = self.menu
         m.delete(0, "end")
         for zone, r in sorted(self.data["readings"].items(), key=lambda kv: -kv[1]["ts"]):
-            n = self.fl.needs(r["energy"])
+            n = self.fl.needs(r["energy"], self.overlay.cfg["floraison_gain"])
             m.add_command(label=f"{zone} : {self.fl.STAGES[r['stage']][0]} · {number(r['energy'])} pts · "
-                                f"≈ {n['lucky']} Lucky ({n['lucky_best']} à {n['lucky_worst']}) ou {n['super']} Super",
+                                f"≈ {n['lucky']} Lucky ({n['lucky_best']} à {n['lucky_worst']}), {n['super']} Super "
+                                f"ou {n['blooms']} Floraisons",
                           command=lambda z=zone: self.choose(z))
         if self.data["readings"]:
             m.add_separator()
         m.add_command(label="Oublier les lectures", command=self.forget)
         m.add_command(label="Réglages…", command=self.overlay.settings)
-        m.add_checkbutton(label="Verrouiller la position", variable=self.locked, command=self.save_window)
+        m.add_checkbutton(label="Verrouiller la position", variable=self.overlay.locked,
+                          command=self.overlay.save_positions)
         m.tk_popup(e.x_root, e.y_root)
 
     def choose(self, zone):
@@ -330,24 +323,23 @@ class Banner:
         return min(round(r["energy"] + gain), self.fl.FULL), lucky, sup
 
     def redraw(self):
-        if not self.shown.get():
+        if not self.panel.shown:
             return
         fl = self.fl
         ticks = [need for _, need in fl.STAGES[1:-1]]
         zone = self.data.get("last")
         r = self.data["readings"].get(zone)
         if not r:
-            image = theme.floraison_panel(None, None, None, fl.FULL, None, 0, 0, "", ticks, self.scale,
+            image = theme.floraison_panel(None, None, None, fl.FULL, None, 0, 0, "", ticks, self.panel.scale,
                                           hint="Ouvre le menu Enrichir d'une zone")
         else:
             energy, lucky, sup = self.estimate(r)
             stage = max(i for i, (_, need) in enumerate(fl.STAGES) if energy >= need)
-            n = fl.needs(energy)
+            n = fl.needs(energy, self.overlay.cfg["floraison_gain"])
             since = " ".join(t for t in (f"+{lucky} Lucky" if lucky else "", f"+{sup} Super" if sup else "") if t)
             image = theme.floraison_panel(zone, fl.STAGES[stage][0], energy, fl.FULL, n["missing"], n["lucky"],
-                                          n["super"], since, ticks, self.scale)
-        self.photo = ImageTk.PhotoImage(image)
-        self.label.config(image=self.photo)
+                                          n["super"], since, ticks, self.panel.scale, blooms=n["blooms"])
+        self.panel.set_image(image)
 
 
 class Settings:
@@ -359,6 +351,7 @@ class Settings:
             overlay.settings_window.lift()
             return
         d = self.d = overlay.settings_window = tk.Toplevel(overlay.root)
+        self.ready = False  # sliders call back when they get their first value: not a change
         d.title("Réglages du compteur")
         d.attributes("-topmost", True)
         d.resizable(False, False)
@@ -367,15 +360,26 @@ class Settings:
         show = tk.LabelFrame(d, text="Afficher", padx=8, pady=4)
         show.pack(fill="x", padx=10, pady=(10, 4))
         self.flags = {}
-        for key, label in (("show_lucky", "Cadre Lucky"), ("show_super", "Cadre Super Lucky")):
+        items = [("show_lucky", "Panneau Lucky"), ("show_super", "Panneau Super Lucky")]
+        if overlay.banner:
+            items.append(("show_floraison", "Panneau Floraison (énergie prismatique)"))
+        for key, label in items:
             v = self.flags[key] = tk.BooleanVar(value=cfg[key])
             tk.Checkbutton(show, text=label, variable=v, command=lambda k=key: self.set_flag(k)).pack(anchor="w")
-        if overlay.banner:
-            tk.Checkbutton(show, text="Bandeau Floraison (énergie prismatique)", variable=overlay.banner.shown,
-                           command=lambda: self.set_flag("banner")).pack(anchor="w")
+        tk.Label(show, fg="#555", justify="left", text=(
+            "Glisse un panneau pour le déplacer seul, Maj + glisser pour tous les déplacer ensemble. "
+            "Près d'un autre panneau ou d'un bord de l'écran, il s'aimante."), wraplength=400).pack(anchor="w")
+        size = tk.Frame(show)
+        size.pack(anchor="w", pady=(4, 0))
+        tk.Label(size, text="Taille", width=7, anchor="w").pack(side="left")
+        self.size = tk.Scale(size, from_=60, to=160, resolution=5, orient="horizontal", length=160,
+                             showvalue=True, command=lambda v: self.set_size(int(float(v))))
+        self.size.set(round(overlay.sizes.get("lucky", 1.0) * 100))
+        self.size.pack(side="left", padx=6)
+        tk.Label(size, text="% (tous les panneaux ; Ctrl + molette sur un panneau pour lui seul)").pack(side="left")
         row = tk.Frame(show)
         row.pack(anchor="w", pady=(4, 0))
-        tk.Label(row, text="Opacité").pack(side="left")
+        tk.Label(row, text="Opacité", width=7, anchor="w").pack(side="left")
         self.opacity = tk.Scale(row, from_=40, to=100, orient="horizontal", length=160, showvalue=True,
                                 command=lambda v: self.set_opacity(int(v)))
         self.opacity.set(round(cfg["opacity"] * 100))
@@ -408,36 +412,35 @@ class Settings:
         d.protocol("WM_DELETE_WINDOW", self.close)
         d.bind("<KeyPress>", self.key_pressed)
         self.capturing = None
+        d.after(300, lambda: setattr(self, "ready", True))
         d.focus_force()
 
     def save(self):
         save_json(CONFIG, self.o.cfg)
 
-    def visible_count(self):
-        banner = self.o.banner.shown.get() if self.o.banner else False
-        return self.flags["show_lucky"].get() + self.flags["show_super"].get() + banner
-
     def set_flag(self, key):
-        if self.visible_count() == 0:  # nothing left to right-click on to come back here
-            if key == "banner":
-                self.o.banner.shown.set(True)
-            else:
-                self.flags[key].set(True)
-            self.note.config(text="Garde au moins un élément affiché : c'est par son clic droit qu'on revient ici.")
-            return
-        if key == "banner":
-            self.o.banner.set_shown()
+        if not any(v.get() for v in self.flags.values()):  # nothing left to right-click on to come back here
+            self.flags[key].set(True)
+            self.note.config(text="Garde au moins un panneau affiché : c'est par son clic droit qu'on revient ici.")
             return
         self.o.cfg[key] = self.flags[key].get()
         self.o.layout()
         self.save()
 
     def set_opacity(self, percent):
+        if not self.ready:
+            return
         self.o.cfg["opacity"] = percent / 100
-        self.o.root.attributes("-alpha", percent / 100)
-        if self.o.banner:
-            self.o.banner.top.attributes("-alpha", percent / 100)
+        for panel in self.o.all_panels():
+            panel.top.attributes("-alpha", percent / 100)
         self.save()
+
+    def set_size(self, percent):
+        if not self.ready:
+            return
+        for name in ("lucky", "super", "floraison"):
+            self.o.sizes[name] = percent / 100
+        self.o.resized()
 
     def set_server(self):
         self.o.cfg["server"] = self.server.get()
@@ -524,33 +527,17 @@ class Overlay:
         self.errors, self.highlight, self.drag = [], {}, None
         self.history = []        # how to revert each action of this session, for F6
         self.tokens = []         # (deadline, "key" | "sound"): the next F7 / automatic catch is already counted
-        self.win = load_json(WINDOW, {"x": 40, "y": 40, "locked": False})
-        scale = root.winfo_fpixels("1i") / 96
-        px = lambda n: round(n * scale)
-
-        root.overrideredirect(True)
-        root.attributes("-topmost", True)
-        root.attributes("-alpha", cfg["opacity"])
-        root.configure(bg=theme.KEY_HEX)
-        root.attributes("-transparentcolor", theme.KEY_HEX)  # only the rounded panels show
-        root.geometry(f"+{self.win['x']}+{self.win['y']}")
-
+        self.scale = scale = root.winfo_fpixels("1i") / 96
+        self.px = px = lambda n: round(n * scale)
+        root.withdraw()  # every panel has its own window
+        self.positions, locked = self.load_positions()
+        self.sizes = {k: float(v) for k, v in load_json(WINDOW, {}).get("sizes", {}).items()}
+        self.locked = tk.BooleanVar(value=locked)
         self.hotkeys = None      # Hotkeys, restarted by the settings when a key changes
-        self.bars = {kind: Bar(root, kind, px, scale) for kind in ("lucky", "super")}
-        self.status = tk.Label(root, bg=NIGHT, fg=WARN, font=("Segoe UI", 8), anchor="w",
-                               wraplength=round(theme.W * scale))  # packed on error
-        self.spacer = tk.Frame(root, bg=theme.KEY_HEX, height=1)
-        self.layout()
-
         self.menu = tk.Menu(root, tearoff=0)
-        self.locked = tk.BooleanVar(value=self.win["locked"])
-        # bindings on the toplevel also fire for every widget inside it
-        root.bind("<ButtonPress-1>", self.drag_start)
-        root.bind("<B1-Motion>", self.drag_move)
-        root.bind("<ButtonRelease-1>", lambda e: self.save_window())
-        root.bind("<Button-3>", self.popup)
-
-        self.banner = Banner(self, px, scale) if cfg["floraison"] else None
+        self.panels = {kind: Panel(self, kind, self.popup) for kind in ("lucky", "super")}
+        self.banner = Banner(self, scale) if cfg["floraison"] else None
+        self.layout()
         self.rebuild()
         self.tick()
         self.poll()
@@ -574,37 +561,106 @@ class Overlay:
         m.add_separator()
         m.add_command(label="Régler les compteurs…", command=self.edit)
         m.add_command(label="Réglages…", command=self.settings)
-        m.add_checkbutton(label="Verrouiller la position", variable=self.locked, command=self.save_window)
+        m.add_checkbutton(label="Verrouiller la position", variable=self.locked, command=self.save_positions)
         m.add_command(label="Ouvrir le dossier", command=lambda: os.startfile(HERE))
         m.add_separator()
         m.add_command(label="Quitter", command=self.root.destroy)
         m.tk_popup(e.x_root, e.y_root)
 
-    def drag_start(self, e):
-        self.drag = None if self.locked.get() else (e.x_root - self.root.winfo_x(), e.y_root - self.root.winfo_y())
+    def all_panels(self):
+        return list(self.panels.values()) + ([self.banner.panel] if self.banner else [])
+
+    def load_positions(self):
+        """Where each panel goes, and whether they are locked. Before 1.2 the counter was one window
+        (window.json x, y) and the banner another (window_floraison.json): carried over."""
+        win = load_json(WINDOW, {})
+        pos = {k: list(v) for k, v in win.get("panels", {}).items()}
+        height, gap = round(theme.H * self.scale), self.px(6)
+        if "lucky" not in pos:
+            x, y = win.get("x", 40), win.get("y", 40)
+            pos["lucky"], pos["super"] = [x, y], [x, y + height + gap]
+        old = load_json(BANNER, {})
+        if "floraison" not in pos:
+            if old.get("x") is not None:
+                pos["floraison"] = [old["x"], old.get("y", 8)]
+            else:
+                pos["floraison"] = [(self.root.winfo_screenwidth() - round(theme.W * self.scale)) // 2, 8]
+        if old.get("shown") is False and "show_floraison" not in load_json(CONFIG, {}):
+            self.cfg["show_floraison"] = False
+        return pos, win.get("locked", old.get("locked", False))
+
+    def save_positions(self):
+        save_json(WINDOW, {"locked": self.locked.get(), "panels": self.positions, "sizes": self.sizes})
+
+    def resize(self, panel, e):
+        """Ctrl + wheel over a panel: bigger or smaller, from 60 to 160 % (even locked: never by accident)."""
+        if not e.state & 0x0004:
+            return
+        size = self.sizes.get(panel.name, 1.0) * (1.1 if e.delta > 0 else 1 / 1.1)
+        self.sizes[panel.name] = round(min(max(size, 0.6), 1.6), 2)
+        self.resized()
+
+    def resized(self):
+        self.redraw()
+        for panel in self.all_panels():
+            panel.status.config(wraplength=round(theme.W * panel.scale))
+        self.save_positions()
+
+    def drag_start(self, panel, e):
+        if self.locked.get():
+            self.drag = None
+            return
+        together = bool(e.state & 0x0001)  # Shift: all the panels shown
+        moved = [p for p in self.all_panels() if p.shown] if together else [panel]
+        self.drag = (panel, together, [(p, p.top.winfo_x() - e.x_root, p.top.winfo_y() - e.y_root) for p in moved])
 
     def drag_move(self, e):
-        if self.drag:
-            self.root.geometry(f"+{e.x_root - self.drag[0]}+{e.y_root - self.drag[1]}")
+        if not self.drag:
+            return
+        panel, together, moved = self.drag
+        for p, dx, dy in moved:
+            x, y = e.x_root + dx, e.y_root + dy
+            if not together:
+                x, y = self.snap(p, x, y)
+            p.top.geometry(f"+{x}+{y}")
+            self.positions[p.name] = [x, y]
 
-    def save_window(self):
-        self.win.update(x=self.root.winfo_x(), y=self.root.winfo_y(), locked=self.locked.get())
-        save_json(WINDOW, self.win)
+    def drag_end(self):
+        if self.drag:
+            self.drag = None
+            self.save_positions()
+
+    def snap(self, panel, x, y):
+        """Pull a panel being dragged against the others (stacked, side by side or aligned) and
+        against the screen edges when it comes within a few pixels."""
+        reach, gap = self.px(14), self.px(6)
+        w, h = panel.size()
+        xs, ys = [0, self.root.winfo_screenwidth() - w], [0, self.root.winfo_screenheight() - h]
+        for other in self.all_panels():
+            if other is panel or not other.shown:
+                continue
+            ox, oy = self.positions[other.name]
+            ow, oh = other.size()
+            xs += [ox, ox + ow - w, ox + ow + gap, ox - w - gap]
+            ys += [oy, oy + oh - h, oy + oh + gap, oy - h - gap]
+        best_x = min(xs, key=lambda v: abs(v - x))
+        best_y = min(ys, key=lambda v: abs(v - y))
+        return (best_x if abs(best_x - x) <= reach else x), (best_y if abs(best_y - y) <= reach else y)
 
     def layout(self):
-        """Pack the boxes the settings show, Lucky above Super Lucky; hide the window if none."""
-        for widget in [b.c for b in self.bars.values()] + [self.status, self.spacer]:
-            widget.pack_forget()
-        shown = [kind for kind in ("lucky", "super") if self.cfg[f"show_{kind}"]]
-        for kind in shown:
-            self.bars[kind].pack()
-        if self.errors:
-            self.status.pack(fill="x", padx=8)
-        self.spacer.pack()
-        if shown:
-            self.root.deiconify()
-        else:
-            self.root.withdraw()
+        """Show the panels the settings ask for; errors go under the first one shown."""
+        for kind, panel in self.panels.items():
+            panel.show(self.cfg[f"show_{kind}"])
+        if self.banner:
+            self.banner.panel.show(self.cfg["show_floraison"])
+        shown = [p for p in self.all_panels() if p.shown]
+        for panel in self.all_panels():
+            panel.status.pack_forget()
+        if self.errors and shown:
+            shown[0].status.config(text=" · ".join(self.errors))
+            shown[0].status.pack(fill="x", padx=8, pady=(2, 0))
+        if self.banner:
+            self.banner.redraw()
 
     def settings(self):
         Settings(self)
@@ -615,8 +671,9 @@ class Overlay:
 
     def redraw(self):
         for kind, o in zip(("lucky", "super"), pity.odds(self.state)):
-            if kind in self.bars:
-                self.bars[kind].show(o, self.state.catches_week, self.highlight.get(kind))
+            image = theme.pity_panel(kind, o.pity, o.cap, o.done, o.left, self.state.catches_week,
+                                     self.panels[kind].scale, self.highlight.get(kind))
+            self.panels[kind].set_image(image)
         if self.banner:
             self.banner.redraw()  # Lucky counted since the last reading change its estimate
 
@@ -718,18 +775,16 @@ class Overlay:
     def show_error(self, text):
         if text not in self.errors:
             self.errors.append(text)
-        self.status.config(text=" · ".join(self.errors))
         self.layout()
 
     def clear_errors(self, prefix):
         self.errors = [e for e in self.errors if not e.startswith(prefix)]
-        self.status.config(text=" · ".join(self.errors))
         self.layout()
 
     def keep_on_top(self):
         zones = [z for w in self.watchers for z in w.zones]
-        for window in (self.root, self.banner.top if self.banner else None):
-            if window is None or not window.winfo_viewable():
+        for window in [p.top for p in self.all_panels() if p.shown]:
+            if not window.winfo_viewable():
                 continue
             # borderless games can push themselves above other topmost windows
             hwnd = user32.GetAncestor(window.winfo_id(), 2)  # GA_ROOT

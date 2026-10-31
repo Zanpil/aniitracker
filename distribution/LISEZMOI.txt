@@ -8,8 +8,8 @@ Il compte tout seul :
 - les captures, en regardant les notifications à gauche de l'écran
   (une carte par Aniimo, captures de groupe et Culbuton compris) ;
 - les Lucky et les Super Lucky, en écoutant le son du jeu.
-Un bandeau en haut de l'écran suit aussi l'énergie prismatique des
-Floraisons (voir plus bas).
+Un troisième panneau suit l'énergie prismatique des Floraisons (voir plus
+bas).
 
 Il ne touche pas au jeu : il ne lit ni sa mémoire ni ses fichiers. Il regarde
 l'écran et reçoit le son d'Aniimo par Windows, comme OBS ou Discord.
@@ -48,13 +48,16 @@ Tant que le compteur tourne, ses touches ne vont plus au jeu. Or le jeu
 utilise F7 (appareil photo), F8 (photo rapide) et F9 : change-les dans les
 réglages (pavé numérique ou Ctrl + une touche, par exemple).
 
-Clic gauche maintenu : déplacer. Clic droit : détails, régler les compteurs,
-réglages, verrouiller la position, quitter.
+Lucky, Super Lucky et Floraison sont trois panneaux séparés :
+- glisser un panneau le déplace seul, Maj + glisser les déplace tous ;
+- près d'un autre panneau ou d'un bord de l'écran, il s'aimante ;
+- Ctrl + molette sur un panneau l'agrandit ou le rétrécit.
+Clic droit : détails, régler les compteurs, réglages, verrouiller la
+position, quitter.
 
-RÉGLAGES (clic droit > Réglages...) : ce qui s'affiche (cadre Lucky, cadre
-Super Lucky, bandeau Floraison, opacité), les touches de correction (clique
-sur une action puis appuie sur la nouvelle touche), et le serveur pour
-l'heure du reset.
+RÉGLAGES (clic droit > Réglages...) : les panneaux affichés, leur taille,
+l'opacité, les touches de correction (clique sur une action puis appuie sur
+la nouvelle touche), et le serveur pour l'heure du reset.
 
 - Il ne voit les captures que quand le jeu est la fenêtre active.
 - Posé sur les notifications (à gauche, au milieu de l'écran), il
@@ -63,15 +66,15 @@ l'heure du reset.
 - Reset le lundi à 04:00 UTC (serveur Europe) : tout repart à 0.
 
 
-BANDEAU FLORAISON
+PANNEAU FLORAISON
 -----------------
-Ouvre le menu Enrichir d'une Floraison et clique sur une zone : le bandeau
+Ouvre le menu Enrichir d'une Floraison et clique sur une zone : le panneau
 affiche son énergie prismatique (sur 10 500), ce qui manque pour qu'elle soit
-pleine (un Aniimo prismana apparaît alors à coup sûr) et combien de Lucky ou
-de Super Lucky ça représente. Un Lucky donne 275 à 500 points (302,5 en
-moyenne), un Super Lucky 1 500. Les Lucky obtenus ensuite sont ajoutés en
-estimation (≈) jusqu'à ta prochaine visite du menu. Clic droit sur le
-bandeau : les autres zones lues.
+pleine (un Aniimo prismana apparaît alors à coup sûr) et combien de Lucky,
+de Super Lucky ou de Floraisons ça représente. Un Lucky donne 275 à 500
+points (302,5 en moyenne), un Super Lucky 1 500, un enrichissement environ
+480. Les Lucky obtenus ensuite sont ajoutés en estimation (≈) jusqu'à ta
+prochaine visite du menu. Clic droit sur le panneau : les autres zones lues.
 
 
 SI ÇA NE COMPTE PAS
@@ -91,3 +94,4 @@ Source : les fichiers du jeu (formules 1126 et 1127), identiques à la page
 « Probability Details » du jeu.
 
 Projet et mises à jour : https://github.com/Zanpil/compteur-pity-aniimo
+Nouveautés : https://github.com/Zanpil/compteur-pity-aniimo/blob/main/CHANGELOG.md

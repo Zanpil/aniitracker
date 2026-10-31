@@ -6,7 +6,11 @@ Rules from the game's own files (Data/formula_data.lua, area_rainbowPet_level_da
   Très élevé 6 001, Plein 10 500, where a Prismana form appears for sure;
 - a Lucky adds 275 (40 %), 300 (50 %), 350 (5 %) or 500 points (5 %), 302.5 on average
   (formula 1124); a Super Lucky adds 1 500 (formula 1125);
-- every gain also has a 3 % chance to fill the area at once (formula 1113).
+- every gain also has a 3 % chance to fill the area at once (formula 1113);
+- a nurture (one Floraison, its Veinfruit picked) gives about 480 points, 720 during the Vein
+  abundance events (+50 %). This one is computed by the server: the number comes from a community
+  guide whose Lucky figures (275 to 500) match the game's files, and it fits the effects the game
+  plays when the fruit is picked (bigger from 500, 600 and 700 points). Adjustable in config.json.
 
 The game never shows the number. Its Enrichir menu shows the state's name, and a bar filled with
 (energy - state threshold) / (next threshold - state threshold): both together give the energy.
@@ -25,6 +29,7 @@ STAGES = [("Vide", 0), ("Très faible", 501), ("Léger", 1501), ("Abondant", 300
 LUCKY_GAINS = {275: 0.40, 300: 0.50, 350: 0.05, 500: 0.05}
 LUCKY_MEAN = sum(g * p for g, p in LUCKY_GAINS.items())  # 302.5
 SUPER_GAIN = 1500
+BLOOM_GAIN = 480        # points of one nurture, see above ("floraison_gain" in config.json)
 # areas with a Bloom (map_block_config_data), to correct what the text recognition reads
 ZONES = ["Champs de Cumulaine", "Les Bois brumeux", "Le Détroit argenté", "Forêt des foudres", "Mer florale",
          "Côte de maréeflore", "Hautes-plaines ocres", "Voie de béryl", "Grève d'échoflux", "Crête des crocs",
@@ -49,10 +54,11 @@ def energy_of(stage, fill):
     return round(low + min(max(fill, 0.0), 1.0) * (high - low))
 
 
-def needs(energy):
-    """Points missing to Full, and the Lucky (average, best, worst) or Super Lucky that makes."""
+def needs(energy, bloom_gain=BLOOM_GAIN):
+    """Points missing to Full, and the Lucky (average, best, worst), Super Lucky or Floraisons that makes."""
     missing = max(FULL - energy, 0)
     return {"missing": missing,
+            "blooms": math.ceil(missing / bloom_gain),
             "lucky": math.ceil(missing / LUCKY_MEAN),
             "lucky_best": math.ceil(missing / max(LUCKY_GAINS)),
             "lucky_worst": math.ceil(missing / min(LUCKY_GAINS)),

@@ -311,7 +311,7 @@ def pity_panel(kind, pity, cap, done, left, catches, scale=1.0, number_color=Non
 
 
 def floraison_panel(zone, stage, energy, full, missing, lucky, super_, approx, thresholds, scale=1.0, hint=None,
-                    alpha=False):
+                    alpha=False, blooms=None):
     """Bloom panel: energy of the area / full, bar with a tick per state, what is missing."""
     accent = ACCENT["floraison"]
     pt = Painter(W, H, scale, base("floraison", scale))
@@ -330,8 +330,13 @@ def floraison_panel(zone, stage, energy, full, missing, lucky, super_, approx, t
     pt.text(330, 27, "RESTANT", 8, DIM, "semibold", spacing=1.0)
     pt.text(330, 52, "—" if missing is None else group(missing), 19, WHITE, "bold")
     if missing is not None:
-        for y, n, label, color in ((31, lucky, "Lucky", GOLD), (54, super_, "Super Lucky", PINK)):
-            sparkle(pt, 404, y - 4.5, 4.2, color)
-            x = 412 + pt.text(412, y, str(n), 13.5, color, "bold") + 3
-            pt.text(x, y, label, pt.fit(label, 11, "semibold", 486 - x), color, "semibold")
+        lines = [(lucky, "Lucky", GOLD), (super_, "Super Lucky", PINK)]
+        if blooms is not None:
+            lines.append((blooms, "Floraison" + ("s" if blooms > 1 else ""), CYAN))
+        top, step = (27, 17) if len(lines) == 3 else (31, 23)
+        for i, (n, label, color) in enumerate(lines):
+            y = top + i * step
+            sparkle(pt, 404, y - 4.2, 3.8, color)
+            x = 412 + pt.text(412, y, str(n), 12.5, color, "bold") + 3
+            pt.text(x, y, label, pt.fit(label, 10.5, "semibold", 486 - x), color, "semibold")
     return pt.done(scale, alpha)

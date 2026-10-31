@@ -4,7 +4,7 @@
 
 Petite fenêtre toujours au-dessus du jeu qui **compte toute seule vos captures** dans Aniimo et suit la garantie (pity) des **Coups de chance (Lucky)** et des **Super Lucky**. Un bandeau optionnel suit aussi l'**énergie prismatique** des Floraisons.
 
-**[Télécharger](https://github.com/Zanpil/compteur-pity-aniimo/releases/latest)** · **[Page du projet](https://zanpil.github.io/compteur-pity-aniimo/)**
+**[Télécharger](https://github.com/Zanpil/compteur-pity-aniimo/releases/latest)** · **[Page du projet](https://zanpil.github.io/compteur-pity-aniimo/)** · **[Nouveautés](CHANGELOG.md)**
 
 ![Le compteur](docs/apercu-compteur.png) ![Le bandeau Floraison](docs/apercu-floraison.png)
 
@@ -48,22 +48,23 @@ Une touche appuyée juste après une détection automatique est absorbée : pas 
 
 **Tant que le compteur tourne, ses touches ne vont plus au jeu.** Or le jeu utilise F7 (appareil photo), F8 (photo rapide) et F9. Changez-les dans les réglages, par exemple pour le pavé numérique ou Ctrl + F7.
 
-- **Clic gauche maintenu** : déplacer la fenêtre.
+- **Glisser un panneau** : le déplacer seul. **Maj + glisser** : déplacer tous les panneaux ensemble. Approché d'un autre panneau ou d'un bord de l'écran, il s'aimante.
+- **Ctrl + molette** sur un panneau : l'agrandir ou le rétrécir (60 à 160 %).
 - **Clic droit** : les détails, les corrections, *Régler les compteurs…*, *Réglages…*, verrouiller la position, quitter.
 
 ### Réglages
 
 Clic droit sur le compteur ou sur le bandeau > **Réglages…**. Les changements s'appliquent tout de suite.
 
-- **Afficher** : le cadre Lucky, le cadre Super Lucky, le bandeau Floraison, et l'opacité.
+- **Afficher** : le panneau Lucky, le panneau Super Lucky, le panneau Floraison, la taille de tous les panneaux et l'opacité.
 - **Touches de correction** : cliquez sur une action puis appuyez sur la nouvelle touche. Une touche seule du pavé numérique, une touche F, ou une combinaison avec Ctrl, Alt ou Maj. Échap annule, *Aucune* retire la touche.
 - **Serveur** : Europe, Amérique ou Asie, pour l'heure du reset du lundi.
 
-### Bandeau Floraison
+### Panneau Floraison
 
 Ouvrez le menu **Enrichir** d'une Floraison et cliquez sur une zone. Le compteur lit son nom, son état et la barre, puis calcule les points. Chaque zone lue est retenue : clic droit sur le bandeau pour revoir les autres.
 
-Les Lucky obtenus ensuite sont ajoutés avec leur gain moyen (« ≈ ») jusqu'à la lecture suivante. Le gain du fruit de veine n'est pas compté : rouvrez le menu après l'avoir cueilli.
+L'encadré « Restant » donne les points manquants, et leur équivalent en Lucky, en Super Lucky et en **Floraisons** (enrichissements). Les Lucky obtenus ensuite sont ajoutés avec leur gain moyen (« ≈ ») jusqu'à la lecture suivante. Le gain du fruit de veine n'est pas compté : rouvrez le menu après l'avoir cueilli.
 
 Le compteur se cache des captures d'écran (et du partage Discord) seulement quand il est posé sur une zone qu'il lit, pour ne pas se la cacher à lui-même. Ailleurs, on le voit normalement.
 
@@ -82,6 +83,7 @@ Toutes viennent des fichiers du jeu (`Data/formula_data.lua`, tables `area_rainb
 - Le Super Lucky est tiré en premier. Reset le lundi à 04:00, heure du serveur (04:00 UTC en Europe) : les compteurs de la semaine et de garantie repartent à 0.
 - **Énergie prismatique d'une zone** : Vide 0, Très faible 501, Léger 1 501, Abondant 3 001, Très élevé 6 001, **Plein 10 500** (Aniimo prismana garanti).
 - Un **Lucky** ajoute 275 points (40 % des fois), 300 (50 %), 350 (5 %) ou 500 (5 %), soit **302,5 en moyenne**. Un **Super Lucky** ajoute **1 500** points. Chaque gain a 3 % de chances de remplir la zone d'un coup.
+- Un **enrichissement** (une Floraison dont on cueille le fruit de veine) donne environ **480 points**, 720 pendant les événements d'abondance de la Veine. Ce gain est calculé par le serveur : le chiffre vient d'un guide de la communauté. Ses chiffres pour les Lucky (275 à 500) sont exacts, et il colle avec les effets que le jeu joue à la cueillette (plus gros à partir de 500, 600 et 700 points). Si vos mesures diffèrent, changez `"floraison_gain"` dans `config.json`.
 - Le menu Enrichir montre l'avancement **dans l'état actuel** : (énergie − seuil de l'état) ÷ (seuil suivant − seuil de l'état).
 
 ## Comment il détecte
@@ -108,7 +110,8 @@ pythonw overlay.py
 
 | Fichier | Rôle |
 |---|---|
-| `overlay.py` | les fenêtres, le menu, les réglages, les touches |
+| `overlay.py` | les panneaux (une fenêtre chacun), le menu, les réglages, les touches |
+| `theme.py` | le dessin des panneaux |
 | `pity.py` | les règles de garantie, les compteurs recalculés depuis l'historique |
 | `cards.py` | les cartes de capture et le Culbuton, à l'écran |
 | `detect.py`, `game_audio.py` | la reconnaissance des sons, la réception du son du jeu seul |
