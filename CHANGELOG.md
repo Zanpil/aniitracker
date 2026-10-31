@@ -1,5 +1,18 @@
 # Nouveautés
 
+## 1.3.0 — 31 octobre 2026
+
+**Menu plus facile**
+- Nouvelle **bulle** flottante (le logo) : un clic ouvre le menu. On la déplace et la redimensionne comme les panneaux, et on peut la cacher dans les réglages.
+- Le menu est maintenant une petite fenêtre qui **reste ouverte** jusqu'à ce qu'on la ferme : ✕, Échap, la bulle à nouveau ou une action. Le clic droit sur un panneau ouvre le même menu.
+- Correction : le menu du clic droit se refermait tout seul, parce que le compteur repassait ses panneaux au premier plan par-dessus lui toutes les 2 secondes. Le menu et les fenêtres de réglage restent maintenant au-dessus des panneaux.
+
+**Panneaux**
+- Chaque panneau a sa **propre taille** dans les réglages (Lucky, Super Lucky, Floraison, bulle). Ctrl + molette sur un panneau marche toujours.
+- Chaque panneau se **verrouille** séparément : menu > *Panneaux* > *verrouillé*. Un panneau verrouillé ne bouge plus.
+- Des panneaux peuvent être **liés** : menu > *Panneaux* > *lié*. Déplacer un panneau lié déplace tous les panneaux liés. *Tout verrouiller* bloque tout d'un coup.
+- Le menu montre aussi les zones Floraison lues, avec les Lucky, Super Lucky et Floraisons restants de chacune.
+
 ## 1.2.0 — 31 octobre 2026
 
 **Panneaux séparés**

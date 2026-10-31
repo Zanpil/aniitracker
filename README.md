@@ -48,15 +48,17 @@ Une touche appuyée juste après une détection automatique est absorbée : pas 
 
 **Tant que le compteur tourne, ses touches ne vont plus au jeu.** Or le jeu utilise F7 (appareil photo), F8 (photo rapide) et F9. Changez-les dans les réglages, par exemple pour le pavé numérique ou Ctrl + F7.
 
+- **La bulle** (le logo) : un clic ouvre le **menu**, qui reste ouvert jusqu'à ce que vous le fermiez (✕, Échap, la bulle à nouveau). Le clic droit sur un panneau ouvre le même menu. On y trouve les détails, les corrections, les zones Floraison lues, *Régler les compteurs…*, *Réglages…* et *Quitter*.
 - **Glisser un panneau** : le déplacer seul. **Maj + glisser** : déplacer tous les panneaux ensemble. Approché d'un autre panneau ou d'un bord de l'écran, il s'aimante.
-- **Ctrl + molette** sur un panneau : l'agrandir ou le rétrécir (60 à 160 %).
-- **Clic droit** : les détails, les corrections, *Régler les compteurs…*, *Réglages…*, verrouiller la position, quitter.
+- **Menu > Panneaux** : chaque panneau se **verrouille** (il ne bouge plus) et se **lie** aux autres (les panneaux liés se déplacent ensemble).
+- **Ctrl + molette** sur un panneau : l'agrandir ou le rétrécir (60 à 160 %), ou par les réglages.
 
 ### Réglages
 
 Clic droit sur le compteur ou sur le bandeau > **Réglages…**. Les changements s'appliquent tout de suite.
 
-- **Afficher** : le panneau Lucky, le panneau Super Lucky, le panneau Floraison, la taille de tous les panneaux et l'opacité.
+- **Afficher** : le panneau Lucky, le panneau Super Lucky, le panneau Floraison, la bulle, et l'opacité. Un au moins reste affiché, pour garder l'accès au menu.
+- **Taille de chaque panneau** : Lucky, Super Lucky, Floraison et bulle, de 60 à 160 %.
 - **Touches de correction** : cliquez sur une action puis appuyez sur la nouvelle touche. Une touche seule du pavé numérique, une touche F, ou une combinaison avec Ctrl, Alt ou Maj. Échap annule, *Aucune* retire la touche.
 - **Serveur** : Europe, Amérique ou Asie, pour l'heure du reset du lundi.
 

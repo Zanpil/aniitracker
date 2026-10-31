@@ -48,14 +48,18 @@ Tant que le compteur tourne, ses touches ne vont plus au jeu. Or le jeu
 utilise F7 (appareil photo), F8 (photo rapide) et F9 : change-les dans les
 réglages (pavé numérique ou Ctrl + une touche, par exemple).
 
+LA BULLE (le logo) : un clic ouvre le menu, qui reste ouvert jusqu'à ce que
+tu le fermes (✕, Échap ou la bulle). Le clic droit sur un panneau aussi.
+
 Lucky, Super Lucky et Floraison sont trois panneaux séparés :
 - glisser un panneau le déplace seul, Maj + glisser les déplace tous ;
 - près d'un autre panneau ou d'un bord de l'écran, il s'aimante ;
-- Ctrl + molette sur un panneau l'agrandit ou le rétrécit.
-Clic droit : détails, régler les compteurs, réglages, verrouiller la
-position, quitter.
+- menu > Panneaux : verrouiller un panneau, ou lier des panneaux pour
+  qu'ils se déplacent ensemble ;
+- Ctrl + molette sur un panneau l'agrandit ou le rétrécit (ou les
+  réglages, panneau par panneau).
 
-RÉGLAGES (clic droit > Réglages...) : les panneaux affichés, leur taille,
+RÉGLAGES (menu > Réglages...) : les panneaux affichés, la taille de chacun,
 l'opacité, les touches de correction (clique sur une action puis appuie sur
 la nouvelle touche), et le serveur pour l'heure du reset.
 

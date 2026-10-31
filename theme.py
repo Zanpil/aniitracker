@@ -340,3 +340,30 @@ def floraison_panel(zone, stage, energy, full, missing, lucky, super_, approx, t
             x = 412 + pt.text(412, y, str(n), 12.5, color, "bold") + 3
             pt.text(x, y, label, pt.fit(label, 10.5, "semibold", 486 - x), color, "semibold")
     return pt.done(scale, alpha)
+
+
+@functools.lru_cache(None)
+def bubble(path, scale, size=46):
+    """The floating bubble: the round logo with a thin ring, on KEY (RGB, for a tk image)."""
+    n = int(round(size * scale))
+    big = n * 4
+    try:
+        logo = Image.open(path).convert("RGBA")  # an .ico: Pillow opens its largest picture
+    except OSError:
+        logo = Image.new("RGBA", (256, 256), NIGHT + (255,))
+    # the logo is a rounded square: zoom in a little so the round cut keeps only the picture
+    zoom = int(big * 1.14)
+    logo = logo.resize((zoom, zoom), Image.LANCZOS).crop(((zoom - big) // 2, (zoom - big) // 2,
+                                                           (zoom - big) // 2 + big, (zoom - big) // 2 + big))
+    disc = Image.new("L", (big, big), 0)
+    ImageDraw.Draw(disc).ellipse([2, 2, big - 3, big - 3], fill=255)
+    out = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    out.paste(logo, (0, 0), ImageChops.multiply(logo.getchannel("A"), disc))
+    d = ImageDraw.Draw(out)
+    d.ellipse([2, 2, big - 3, big - 3], outline=LINE + (255,), width=max(big // 22, 2))
+    d.ellipse([big // 22 + 2, big // 22 + 2, big - big // 22 - 3, big - big // 22 - 3],
+              outline=CYAN + (170,), width=max(big // 60, 1))
+    small = out.resize((n, n), Image.LANCZOS)
+    rgb = Image.new("RGB", (n, n), KEY)
+    rgb.paste(small, (0, 0), small)
+    return rgb
