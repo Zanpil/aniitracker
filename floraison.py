@@ -183,18 +183,26 @@ class Reader:
 
     @staticmethod
     def fill(band, corner):
-        """Share of the state's bar that is filled: the bright run from the bar's start."""
+        """Share of the state's bar that is filled: the bright run that starts at the bar's start.
+
+        The menu's light rays behind the bar can light a speck just before it, and a particle can
+        cross the fill: a run starts only on 4 lit pixels, and a gap of 1 or 2 pixels does not end it."""
         x0, y0 = corner[0] - TITLE_AREA[0], corner[1] - TITLE_AREA[1]
         rows = cv2.cvtColor(band[y0 + BAR_DY:y0 + BAR_DY + 4], cv2.COLOR_BGR2HSV)[..., 2]
         lit = (rows > 175).sum(axis=0) >= 3
         start = x0 + BAR_DX
-        run = 0
-        for x in range(start - 4, min(start + BAR_LEN + 6, lit.size)):
+        first = next((x for x in range(start - 4, start + 6) if lit[x:x + 4].all()), None)
+        if first is None:
+            return 0.0
+        last = gap = 0
+        for x in range(first, min(start + BAR_LEN + 6, lit.size)):
             if lit[x]:
-                run += 1
-            elif run:
-                break
-        return min(run / BAR_LEN, 1.0)
+                last, gap = x, 0
+            else:
+                gap += 1
+                if gap > 2:
+                    break
+        return min(max(last + 1 - start, 0) / BAR_LEN, 1.0)
 
     @staticmethod
     def stage_crop(band, corner):

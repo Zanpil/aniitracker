@@ -1,5 +1,10 @@
 # Nouveautés
 
+## 1.4.2 — 2 novembre 2026
+
+**Correction**
+- Floraison : la barre pouvait être lue presque vide alors qu'elle était presque pleine dans le jeu (« Très élevé 7 % » pour une barre à 95 %). Les rayons lumineux derrière le menu Enrichir allumaient un point juste avant la barre, et la mesure s'arrêtait là ; une particule qui passait sur la barre pouvait aussi la couper. La mesure part maintenant du vrai début de la barre et ne s'arrête plus sur ces petits points. Rouvrez le menu Enrichir d'une zone mal lue pour corriger sa valeur.
+
 ## 1.4.1 — 2 novembre 2026
 
 **Corrections**
