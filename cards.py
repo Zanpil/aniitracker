@@ -11,7 +11,7 @@ over a grid of the portraits caught (5 a row, each with its level badge): MassCo
 Only the screen is read (GDI copy of one small area), never the game's process.
 Geometry is measured on a 2560x1440 screen and scaled for other heights.
 """
-import ctypes, os, sys, threading, time
+import ctypes, os, sys, threading, time, traceback
 from ctypes import wintypes
 import cv2
 import numpy as np
@@ -270,6 +270,7 @@ class Watcher(threading.Thread):
         screens, client, pid, pid_checked = None, None, None, 0.0
         counter, mass = Counter(tpl), MassCounter(mass_tpl)
         next_t, k = time.time(), 0
+        failed = False  # an error is shown: taken back at the next good look
         while True:
             try:
                 next_t = max(next_t + 1 / FPS, time.time() - 0.5)
@@ -293,8 +294,12 @@ class Watcher(threading.Thread):
                     found += mass.step(self.look(screens[1], MASS_AREA), time.time())
                 for t, n in found:
                     self.out.put(("cards", t, n))
+                if failed:
+                    self.out.put(("ok", "cartes"))
+                    failed = False
             except Exception as e:
-                self.out.put(("err", f"cartes : {e}"))
+                self.out.put(("err", f"cartes : {e}", traceback.format_exc()))
+                failed = True
                 time.sleep(5)
 
     @staticmethod

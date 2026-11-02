@@ -17,7 +17,7 @@ The game never shows the number. Its Enrichir menu shows the state's name, and a
 The bar is measured on the screen, the names are read by Windows' text recognition (OcrEngine,
 through a PowerShell kept open). Only the screen is read, never the game's process.
 """
-import ctypes, difflib, math, os, subprocess, tempfile, threading, time, unicodedata
+import ctypes, difflib, math, os, subprocess, tempfile, threading, time, traceback, unicodedata
 import cv2
 import numpy as np
 
@@ -171,10 +171,15 @@ class Reader:
         self.title = title
 
     def find(self, band):
-        """Title's top-left corner in 1440p screen coordinates, or None."""
+        """Title's top-left corner in 1440p screen coordinates, or None.
+
+        Only where the bar and the state's name, measured from the corner, are inside the band: a
+        look-alike elsewhere (or a game window that is not 16:9) would leave them nothing to read."""
         score = cv2.matchTemplate(cv2.cvtColor(band, cv2.COLOR_BGR2GRAY), self.title, cv2.TM_CCOEFF_NORMED)
         _, best, _, (x, y) = cv2.minMaxLoc(score)
-        return (TITLE_AREA[0] + x, TITLE_AREA[1] + y) if best >= 0.7 else None
+        if best < 0.7 or y + BAR_DY + 4 > band.shape[0] or x + STAGE_DX + STAGE_W > band.shape[1]:
+            return None
+        return TITLE_AREA[0] + x, TITLE_AREA[1] + y
 
     @staticmethod
     def fill(band, corner):
@@ -283,6 +288,7 @@ class Watcher(threading.Thread):
         screens, client, pid, pid_checked = None, None, None, 0.0
         seen = {"stage": (None, None), "zone": (None, None)}  # signature and what was read
         steady = Steady()
+        failed = False  # an error is shown: taken back once the menu is read, or seen closed
         while True:
             try:
                 time.sleep(0.25 if steady.recent else 0.5)
@@ -301,6 +307,9 @@ class Watcher(threading.Thread):
                 corner = reader.find(band)
                 if corner is None:
                     steady.reset(closed=True)
+                    if failed:
+                        self.out.put(("ok", "floraison"))
+                        failed = False
                     continue
                 self.seen_menu = time.time()
                 ocr = ocr or Ocr()
@@ -314,11 +323,15 @@ class Watcher(threading.Thread):
                     continue
                 index = [s for s, _ in STAGES].index(stage)
                 fill = steady.add(zone, index, fill)
+                if failed:
+                    self.out.put(("ok", "floraison"))
+                    failed = False
                 if fill is not None:
                     self.out.put(("floraison", {"zone": zone, "stage": index, "fill": round(fill, 3),
                                                 "energy": energy_of(index, fill), "ts": round(time.time(), 1)}))
             except Exception as e:
-                self.out.put(("err", f"floraison : {e}"))
+                self.out.put(("err", f"floraison : {e}", traceback.format_exc()))
+                failed = True
                 if ocr:
                     ocr.close()
                 ocr = None

@@ -114,11 +114,11 @@ def install(zip_path, exe):
 
 
 def cleanup(exe):
-    """What an update leaves behind: the old exe once it has quit, an interrupted download; and the
-    program under its old name, which this one replaces."""
+    """What an update leaves behind: the old exe once it has quit, an interrupted download; and what an
+    older version left beside this one, by hand: the program under its old name, the test .bat."""
     folder, name = os.path.dirname(exe), os.path.basename(exe)
     names = os.listdir(folder)
-    for n in (ASSET + ".part", OLD_ASSET + ".part", name[:-4] + ".new.exe"):
+    for n in (ASSET + ".part", OLD_ASSET + ".part", name[:-4] + ".new.exe") + OBSOLETE:
         if n in names:
             try:
                 os.remove(os.path.join(folder, n))

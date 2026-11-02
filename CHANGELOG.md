@@ -1,5 +1,12 @@
 # Nouveautés
 
+## 1.4.1 — 2 novembre 2026
+
+**Corrections**
+- Floraison : un écran du jeu qui ressemble au titre du menu Enrichir pouvait faire apparaître une erreur rouge sous les panneaux (« OpenCV … !_src.empty() in function 'cv::cvtColor' »). Le compteur ne prend plus pour le menu un titre trouvé ailleurs qu'à sa place.
+- Une erreur de lecture de l'écran (Floraison ou cartes de capture) s'efface d'elle-même dès que la lecture remarche, au lieu de rester affichée jusqu'au redémarrage. Son détail est noté dans `data\erreurs.txt`.
+- Après une installation à la main depuis la 1.2.0, l'ancien `Tester le compteur.bat`, qui ne marchait plus, est supprimé.
+
 ## 1.4.0 — 31 octobre 2026
 
 **Nouveau nom : Aniitracker**

@@ -15,7 +15,7 @@ import pity
 import theme
 import updater
 
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 
 # your files (counters, settings) sit next to the script, or next to the exe once built
 HERE = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
@@ -174,9 +174,10 @@ def retry(write, tries=6):
             time.sleep(0.05 * 2 ** i)  # 1.5 s in all
 
 
-def log_error(where, exc_info=None):
-    """Note an unexpected error at the end of data\\erreurs.txt; the self-test shows the last ones."""
-    text = "".join(traceback.format_exception(*exc_info)) if exc_info else traceback.format_exc()
+def log_error(where, exc_info=None, details=None):
+    """Note an unexpected error at the end of data\\erreurs.txt; the self-test shows the last ones.
+    `details`: the traceback already written out (an error from another thread)."""
+    text = details or ("".join(traceback.format_exception(*exc_info)) if exc_info else traceback.format_exc())
     try:
         if os.path.exists(ERRORS) and os.path.getsize(ERRORS) > 200_000:
             with open(ERRORS, encoding="utf-8", errors="replace") as f:
@@ -1109,7 +1110,11 @@ class Overlay:
                 self.banner.on_reading(msg[1])
         elif msg[0] == "update":  # GitHub answered (check_update)
             self.on_update(*msg[1:])
+        elif msg[0] == "ok":  # a screen reader works again after an error: its message goes
+            self.clear_errors(msg[1] + " :")
         else:
+            if len(msg) > 2 and msg[1] not in self.errors:  # an error in a screen reader, with its traceback
+                log_error(msg[1].split(" :")[0], details=msg[2])
             self.show_error(msg[1])
 
     def show_notice(self, text, seconds=20):
