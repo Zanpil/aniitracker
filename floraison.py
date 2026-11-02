@@ -17,7 +17,7 @@ The game never shows the number. Its Enrichir menu shows the state's name, and a
 The bar is measured on the screen, the names are read by Windows' text recognition (OcrEngine,
 through a PowerShell kept open). Only the screen is read, never the game's process.
 """
-import ctypes, difflib, math, os, subprocess, tempfile, threading, time, traceback, unicodedata
+import collections, ctypes, difflib, math, os, subprocess, tempfile, threading, time, traceback, unicodedata
 import cv2
 import numpy as np
 
@@ -89,16 +89,30 @@ def closest(text, choices, cutoff=0.6):
 NOT_ZONES = ("augmenter", "zone inconnue")  # also on the pills: the "Augmenter" tag, locked areas
 
 
+def words(text):
+    return plain(text).replace("-", " ").replace("'", " ").replace("’", " ").split()
+
+
+# words of 5 letters or more found in one area's name only: « cumulaine », « echoflux »...
+_USES = collections.Counter(w for z in ZONES for w in set(words(z)))
+OWN_WORDS = {w: z for z in ZONES for w in words(z) if len(w) >= 5 and _USES[w] == 1}
+
+
 def zone_name(text):
     """The area named on the chosen pill, from what the text recognition read there (lines joined
-    by ' | ', a long name takes two): the closest known area, else the text itself if it looks like
-    a name (an area added by an update of the game), else None."""
-    lines = [line.strip(" .!:-") for line in text.split("|")]
+    by ' | ', a long name takes two): the closest known area, or the one whose own word was read (a
+    name cut short), else the text itself if it looks like a name (an area added by an update of
+    the game), else None."""
+    lines = [line.strip(" .!:-•") for line in text.split("|")]
     lines = [line for line in lines if line and plain(line) not in NOT_ZONES]
     for candidate in [" ".join(lines)] + lines:
         zone = closest(candidate, ZONES, 0.65)  # misread names score 0.86 and more, unknown ones ~0.5
         if zone:
             return zone
+    scores = [(difflib.SequenceMatcher(None, word, own).ratio(), zone)
+              for word in words(" ".join(lines)) for own, zone in OWN_WORDS.items()]
+    if scores and max(scores)[0] >= 0.8:
+        return max(scores)[1]
     name = " ".join("".join(c for c in " ".join(lines) if c.isalpha() or c in " '-’").split())
     return name[:40] if sum(c.isalpha() for c in name) >= 4 and "inconnue" not in plain(name) else None
 
@@ -212,7 +226,10 @@ class Reader:
 
     @staticmethod
     def zone_crop(lists):
-        """The chosen area's name: the biggest white pill in the two columns."""
+        """The chosen area's name: the row of the biggest white pill, across its column.
+
+        The pill is white only on its side toward the flower: on the left column, that is the end
+        of the name, and what lies further right is the line « Une chance d'attirer… »."""
         hsv = cv2.cvtColor(lists, cv2.COLOR_BGR2HSV)
         white = ((hsv[..., 2] > 215) & (hsv[..., 1] < 45)).astype(np.uint8)
         white[:, 450:1450] = 0  # between the columns: the flower in the middle
@@ -222,7 +239,8 @@ class Reader:
         if not pills:
             return None
         x, y, w, h, _ = max(pills, key=lambda s: s[4])
-        return lists[y:y + h, max(x - 10, 0):min(x + 520, lists.shape[1])]
+        left, right = (0, 500) if x < 450 else (1450, lists.shape[1])  # « Une chance… » starts beyond 550
+        return lists[max(y - 6, 0):y + h + 6, left:right]
 
 
 def signature(img):

@@ -1,5 +1,10 @@
 # Nouveautés
 
+## 1.4.4 — 2 novembre 2026
+
+**Correction**
+- Floraison : le nom d'une zone de la colonne de gauche pouvait être lu coupé et mêlé à la phrase « Une chance d'attirer… » (« umulaine Une chance » pour Champs de Cumulaine). Le panneau affichait ce faux nom, et chaque lecture ajoutait une zone de plus dans le menu. Le nom est maintenant lu en entier, un nom coupé est quand même reconnu, et les lectures rangées sous un faux nom retournent sous leur zone au lancement du compteur.
+
 ## 1.4.3 — 2 novembre 2026
 
 **Correction**

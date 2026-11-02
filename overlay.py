@@ -15,7 +15,7 @@ import pity
 import theme
 import updater
 
-VERSION = "1.4.3"
+VERSION = "1.4.4"
 
 # your files (counters, settings) sit next to the script, or next to the exe once built
 HERE = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
@@ -411,6 +411,18 @@ class Banner:
         import floraison
         self.fl, self.overlay, self.scale = floraison, overlay, scale
         self.data = load_json(READINGS, {"readings": {}, "last": None})
+        # areas whose name was read cut short before 1.4.4 (« umulaine Une chance »): back under their name
+        readings, merged = self.data["readings"], False
+        for name in [n for n in readings if n not in floraison.ZONES]:
+            zone = floraison.zone_name(name)
+            if zone in floraison.ZONES:
+                r, merged = readings.pop(name), True
+                if zone not in readings or readings[zone]["ts"] < r["ts"]:
+                    readings[zone] = r
+                if self.data["last"] == name:
+                    self.data["last"] = zone
+        if merged:
+            save_json(READINGS, self.data)
         self.panel = Panel(overlay, "floraison", overlay.popup)
     def choose(self, zone):
         self.data["last"] = zone
