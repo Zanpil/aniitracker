@@ -1,5 +1,11 @@
 # Nouveautés
 
+## 1.4.3 — 2 novembre 2026
+
+**Correction**
+- Floraison : après une mise à jour faite depuis le menu, le compteur ne lisait plus le menu Enrichir (erreur « floraison : [WinError 2] Le fichier spécifié est introuvable »). Le panneau gardait son ancienne valeur, qui n'avançait plus qu'avec les Lucky comptés, et s'écartait de la barre du jeu. Le compteur redémarré par la mise à jour ne trouvait plus la reconnaissance de texte de Windows. C'est corrigé, et les prochaines mises à jour ne casseront plus la lecture.
+- **Si l'installation de cette version affiche « Le fichier spécifié est introuvable »**, votre compteur a ce même souci depuis la dernière mise à jour. Quittez-le (menu > *Quitter*), relancez `Aniitracker.exe`, puis installez la mise à jour.
+
 ## 1.4.2 — 2 novembre 2026
 
 **Correction**

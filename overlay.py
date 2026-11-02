@@ -15,7 +15,7 @@ import pity
 import theme
 import updater
 
-VERSION = "1.4.2"
+VERSION = "1.4.3"
 
 # your files (counters, settings) sit next to the script, or next to the exe once built
 HERE = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))

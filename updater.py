@@ -19,6 +19,8 @@ EXE = "Aniitracker.exe"
 OLD_ASSET, OLD_EXE = "Compteur-pity-Aniimo.zip", "Compteur pity Aniimo.exe"
 REPLACED = ("LISEZMOI.txt",)            # updated with the exe
 OBSOLETE = ("Tester le compteur.bat",)  # shipped by older versions, replaced by the menu
+# by its full path: a counter restarted by an update up to 1.4.2 has no PATH to find it with
+POWERSHELL = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), r"System32\WindowsPowerShell\v1.0\powershell.exe")
 
 
 def parse(version):
@@ -68,7 +70,7 @@ def signer(path):
     """Who signed the program (Authenticode), or None if it is not signed or the signature is wrong."""
     script = ("$s = Get-AuthenticodeSignature -LiteralPath $env:SIGNED_FILE; "
               "if ($s.Status -eq 'Valid') { $s.SignerCertificate.Subject }")
-    out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+    out = subprocess.run([POWERSHELL, "-NoProfile", "-NonInteractive", "-Command", script],
                          env={**os.environ, "SIGNED_FILE": path}, capture_output=True, text=True,
                          timeout=60, creationflags=0x08000000)  # CREATE_NO_WINDOW
     return out.stdout.strip() or None
@@ -145,10 +147,16 @@ def start(command, folder):
     """Start a program of its own (the counter again, or its self-test).
 
     A one-file exe started from another one would reuse the files the first one unpacked, which
-    are deleted when it quits: PyInstaller's variables are taken out of its environment."""
+    are deleted when it quits: PyInstaller's variables are taken out of its environment, and the
+    unpacked folders from the others. Only those folders: OpenCV puts one first in PATH, and a counter
+    without PATH could not start PowerShell (versions 1.3.0 to 1.4.2 lost it this way)."""
     unpacked = getattr(sys, "_MEIPASS", None)
-    env = {k: v for k, v in os.environ.items()
-           if not k.startswith("_PYI_") and not (unpacked and v.startswith(unpacked))}
+    env = {}
+    for k, v in os.environ.items():
+        if unpacked:
+            v = os.pathsep.join(p for p in v.split(os.pathsep) if not p.lower().startswith(unpacked.lower()))
+        if v and not k.startswith("_PYI_"):
+            env[k] = v
     env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
     subprocess.Popen(command, cwd=folder, env=env, close_fds=True,
                      creationflags=0x00000008 | 0x00000200)  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP

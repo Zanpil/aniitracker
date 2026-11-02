@@ -22,6 +22,7 @@ import cv2
 import numpy as np
 
 import cards
+import updater
 
 FULL = 10500
 STAGES = [("Vide", 0), ("Très faible", 501), ("Léger", 1501), ("Abondant", 3001), ("Très élevé", 6001),
@@ -139,7 +140,7 @@ class Ocr:
         with open(script, "w", encoding="utf-8-sig") as f:
             f.write(OCR_SCRIPT)
         self.proc = subprocess.Popen(
-            ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script],
+            [updater.POWERSHELL, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             encoding="utf-8", creationflags=0x08000000)  # CREATE_NO_WINDOW
         if self.proc.stdout.readline().strip() != "ready":
